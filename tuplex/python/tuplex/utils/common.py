@@ -42,6 +42,7 @@ try:
 except ImportError:
     __version__ = "dev"
 
+from typing import Callable, Optional
 
 _logger = logging.getLogger(__name__)
 
@@ -268,7 +269,7 @@ def save_conf_yaml(conf, file_path):
         f.write(out)
 
 
-def pythonize_options(options):
+def pythonize_options(options: dict) -> dict:
     """
     convert string based options into python objects/types
     Args:
@@ -278,7 +279,7 @@ def pythonize_options(options):
         dict with python types
     """
 
-    def parse_string(item):
+    def parse_string(item: str) -> Any:
         """
         check what kind of variable string represents and convert accordingly
         Args:
@@ -316,7 +317,7 @@ def pythonize_options(options):
     return {k: parse_string(v) for k, v in options.items()}
 
 
-def load_conf_yaml(file_path):
+def load_conf_yaml(file_path: str) -> dict:
     """loads yaml file and converts contents to nested dictionary
 
     Args:
@@ -325,7 +326,7 @@ def load_conf_yaml(file_path):
     """
 
     # helper function to get correct nesting from yaml file!
-    def to_nested_dict(obj):
+    def to_nested_dict(obj: Any) -> dict:
         resultDict = dict()
         if isinstance(obj, list):
             for item in obj:
@@ -352,7 +353,7 @@ def load_conf_yaml(file_path):
     return to_nested_dict(d)
 
 
-def stringify_dict(d):
+def stringify_dict(d: dict) -> dict:
     """convert keys and vals into strings
     Args:
         d (dict): dictionary
@@ -364,7 +365,7 @@ def stringify_dict(d):
     return {str(key): str(val) for key, val in d.items()}
 
 
-def registerLoggingCallback(callback):
+def registerLoggingCallback(callback: Callback) -> None:
     """
     register a custom logging callback function with tuplex
     Args:
@@ -376,7 +377,7 @@ def registerLoggingCallback(callback):
     from ..libexec.tuplex import registerLoggingCallback as ccRegister
 
     # create a wrapper to capture exceptions properly and avoid crashing
-    def wrapper(level, time_info, logger_name, msg):
+    def wrapper(level: int, time_info: str, logger_name: str, msg: str) -> None:
         args = (level, time_info, logger_name, msg)
 
         try:
@@ -387,7 +388,7 @@ def registerLoggingCallback(callback):
     ccRegister(wrapper)
 
 
-def logging_callback(level, time_info, logger_name, msg):
+def logging_callback(level: int, time_info: str, logger_name: str, msg: str) -> None:
     """
     this is a callback function which can be used to redirect C++ logging to python logging.
     :param level: logging level as integer, for values cf. PythonCommon.h
@@ -444,7 +445,7 @@ __exit_handlers__ = []
 
 
 # register at exit function to take care of exit handlers
-def auto_shutdown_all():
+def auto_shutdown_all() -> None:
     """
     helper function to automatially shutdown whatever is in the global exit handler array. Resets global variable.
     Returns:
@@ -459,13 +460,15 @@ def auto_shutdown_all():
             if msg:
                 logging.info(msg)
             func(args)
-            logging.info("Shutdown {} successfully".format(name))
+            logging.debug("Shutdown {} successfully".format(name))
         except Exception:
             logging.error("Failed to shutdown {}".format(name))
     __exit_handlers__ = []
 
 
-def register_auto_shutdown(name, func, args, msg=None):
+def register_auto_shutdown(
+    name: str, func: Callable, args: tuple, msg: Optional[str] = None
+) -> None:
     global __exit_handlers__
     __exit_handlers__.append((name, func, args, msg))
 
@@ -473,7 +476,7 @@ def register_auto_shutdown(name, func, args, msg=None):
 atexit.register(auto_shutdown_all)
 
 
-def is_process_running(name):
+def is_process_running(name: str) -> bool:
     """
     helper function to check if a process is running on the local machine
     Args:

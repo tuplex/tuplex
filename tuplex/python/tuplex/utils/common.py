@@ -43,6 +43,9 @@ except ImportError:
     __version__ = "dev"
 
 
+_logger = logging.getLogger(__name__)
+
+
 def cmd_exists(cmd):
     """
     checks whether command `cmd` exists or not
@@ -490,7 +493,9 @@ def is_process_running(name):
     return False
 
 
-def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
+def mongodb_uri(
+    mongodb_url: str, mongodb_port: int, db_name: str = "tuplex-history"
+) -> str:
     """
     constructs a fully qualified MongoDB URI
     Args:
@@ -505,8 +510,11 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
 
 
 def check_mongodb_connection(
-    mongodb_url, mongodb_port, db_name="tuplex-history", timeout=10.0
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    db_name: str = "tuplex-history",
+    timeout: float = 10.0,
+) -> None:
     """
     connects to a MongoDB database instance, raises exception if connection fails
     Args:
@@ -564,7 +572,7 @@ def check_mongodb_connection(
     logging.debug("Connection test to MongoDB succeeded")
 
 
-def shutdown_process_via_kill(pid):
+def shutdown_process_via_kill(pid: int) -> None:
     """
     issues a KILL signals to a process with pid
     Args:
@@ -578,12 +586,12 @@ def shutdown_process_via_kill(pid):
 
 
 def find_or_start_mongodb(
-    mongodb_url,
-    mongodb_port,
-    mongodb_datapath,
-    mongodb_logpath,
-    db_name="tuplex-history",
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    mongodb_datapath: str,
+    mongodb_logpath: str,
+    db_name: str = "tuplex-history",
+) -> None:
     """
     attempts to connect to a MongoDB database. If no running local MongoDB is found, will auto-start a mongodb database. R
     aises exception when fails.
@@ -717,7 +725,7 @@ def find_or_start_mongodb(
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 
-def log_gunicorn_errors(logpath):
+def log_gunicorn_errors(logpath: str) -> None:
     """
     uses logging module to print out gunicorn errors if something went wrong
     Args:
@@ -739,7 +747,9 @@ def log_gunicorn_errors(logpath):
             logging.error("Gunicorn error log:\n {}".format("".join(lines[first_idx:])))
 
 
-def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
+def find_or_start_webui(
+    mongo_uri: str, hostname: str, port: int, web_logfile: str
+) -> None:
     """
     tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
     Args:
@@ -950,7 +960,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             "Adding auto-shutdown of process with PID={} (WebUI)".format(ui_pid)
         )
 
-        def shutdown_gunicorn(pid):
+        def shutdown_gunicorn(pid: int) -> None:
             pids_to_kill = []
 
             # iterate over all gunicorn processes and kill them all
@@ -991,7 +1001,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         return version_info
 
 
-def ensure_webui(options):
+def ensure_webui(options: dict) -> None:
     """
     Helper function to ensure WebUI/MongoDB is auto-started when webui is specified
     Args:
@@ -1054,7 +1064,7 @@ def ensure_webui(options):
         webui_uri = webui_url + ":" + str(webui_port)
         if not webui_uri.startswith("http"):
             webui_uri = "http://" + webui_uri
-        print("Tuplex WebUI can be accessed under {}".format(webui_uri))
+        _logger.info("Tuplex WebUI can be accessed under {}".format(webui_uri))
     except Exception as e:
         logging.error(
             "Failed to start or connect to Tuplex WebUI. Details: {}".format(e)

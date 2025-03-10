@@ -15,7 +15,7 @@ repos:
     # Run the linter.
     - id: ruff
       files: ^tuplex/python/tuplex.*\.py$
-      args: [ "--fix", "--select", "I" ]
+      args: [ "--fix", "--config", "ruff.toml"]
       types_or: [ python, pyi ]
     # Run the formatter.
     - id: ruff-format

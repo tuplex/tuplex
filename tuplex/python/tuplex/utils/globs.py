@@ -15,6 +15,8 @@ import opcode
 import sys
 import types
 import weakref
+from types import CodeType
+from typing import Any, Callable, List, Tuple
 
 # ALWAYS import cloudpickle before dill, b.c. of https://github.com/uqfoundation/dill/issues/383
 from cloudpickle.cloudpickle import _get_cell_contents
@@ -31,7 +33,7 @@ HAVE_ARGUMENT = dis.HAVE_ARGUMENT
 EXTENDED_ARG = dis.EXTENDED_ARG
 
 
-def _extract_code_globals(co):
+def _extract_code_globals(co: CodeType) -> dict:
     """
     Find all globals names read or written to by codeblock co
     """
@@ -55,7 +57,7 @@ def _extract_code_globals(co):
     return out_names
 
 
-def _find_imported_submodules(code, top_level_dependencies):
+def _find_imported_submodules(code: CodeType, top_level_dependencies: List[Any]) -> Any:
     """
     Find currently imported submodules used by a function.
     Submodules used by a function need to be detected and referenced for the
@@ -103,7 +105,7 @@ def _find_imported_submodules(code, top_level_dependencies):
     return subimports
 
 
-def _walk_global_ops(code):
+def _walk_global_ops(code: Any) -> Any:
     """
     Yield (opcode, argument number) tuples for all
     global-referencing instructions in *code*.
@@ -114,7 +116,7 @@ def _walk_global_ops(code):
             yield instr.arg, instr.argval
 
 
-def _function_getstate(func):
+def _function_getstate(func: Callable) -> Tuple[dict, dict]:
     # - Put func's dynamic attributes (stored in func.__dict__) in state. These
     #   attributes will be restored at unpickling time using
     #   f.__dict__.update(state)
@@ -163,7 +165,7 @@ def _function_getstate(func):
 # end from cloudpickle
 
 
-def get_globals(func):
+def get_globals(func: Callable) -> dict:
     _, d = _function_getstate(func)
 
     func_globals = d["__globals__"]

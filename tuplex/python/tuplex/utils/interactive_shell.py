@@ -17,6 +17,7 @@ import re
 import sys
 from code import InteractiveConsole
 from types import FunctionType, LambdaType
+from typing import Callable, Optional
 
 from prompt_toolkit.history import InMemoryHistory
 
@@ -42,11 +43,11 @@ from tuplex.utils.source_vault import SourceVault
 # the idea is basically, we can't simply call 'import tuplex' because this would
 # lead to a circular import. Yet, for user convenience, simply exposing tuplex.Context should be sufficient!
 class TuplexModuleHelper:
-    def __init__(self, context_cls):
+    def __init__(self, context_cls: "Context") -> None:
         self._context_cls = context_cls
 
     @property
-    def Context(self):
+    def Context(self) -> "Context":
         return self._context_cls
 
 
@@ -56,15 +57,15 @@ class TuplexShell(InteractiveConsole):
     # use BORG design pattern to make class singleton alike
     __shared_state = {}
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.__dict__ = self.__shared_state
 
     def init(
         self,
-        locals=None,
-        filename="<console>",
-        histfile=os.path.expanduser("~/.console_history"),
-    ):
+        locals: Optional[dict] = None,
+        filename: str = "<console>",
+        histfile: str = os.path.expanduser("~/.console_history"),
+    ) -> None:
         # add dummy helper for context
         if locals is not None and "Context" in locals.keys():
             locals["tuplex"] = TuplexModuleHelper(locals["Context"])
@@ -76,7 +77,7 @@ class TuplexShell(InteractiveConsole):
         self._lastLine = ""
         self.historyDict = {}
 
-    def push(self, line):
+    def push(self, line: str) -> bool:
         """Push a line to the interpreter.
         The line should not have a trailing newline; it may have
         internal newlines.  The line is appended to a buffer and the
@@ -111,7 +112,7 @@ class TuplexShell(InteractiveConsole):
 
         return more
 
-    def get_lambda_source(self, f):
+    def get_lambda_source(self, f: Callable) -> str:
         # Won't this work for functions as well?
 
         assert self.initialized, "must call init on TuplexShell object first"
@@ -135,7 +136,7 @@ class TuplexShell(InteractiveConsole):
         vault.extractAndPutAllLambdas(src_info, f_filename, f_lineno, f_colno, f_globs)
         return vault.get(f, f_filename, f_lineno, f_colno, f_globs)
 
-    def get_function_source(self, f):
+    def get_function_source(self, f: Callable) -> str:
         assert self.initialized, "must call init on TuplexShell object first"
 
         assert isinstance(f, FunctionType) and f.__code__.co_name != "<lambda>", (
@@ -166,13 +167,15 @@ class TuplexShell(InteractiveConsole):
             logging.error(
                 'Could not find function "{}" in source'.format(function_name)
             )
-            return None
+            return ""
 
         return source
 
     # taken from Lib/code.py
     # overwritten to customize behaviour
-    def interact(self, banner=None, exitmsg=None):
+    def interact(
+        self, banner: Optional[str] = None, exitmsg: Optional[str] = None
+    ) -> None:
         """Closely emulate the interactive Python console.
         The optional banner argument specifies the banner to print
         before the first interaction; by default it prints a banner

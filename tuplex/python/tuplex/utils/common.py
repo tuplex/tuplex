@@ -42,6 +42,10 @@ try:
 except ImportError:
     __version__ = "dev"
 
+from typing import Callable, Optional
+
+_logger = logging.getLogger(__name__)
+
 
 def cmd_exists(cmd):
     """
@@ -265,7 +269,7 @@ def save_conf_yaml(conf, file_path):
         f.write(out)
 
 
-def pythonize_options(options):
+def pythonize_options(options: dict) -> dict:
     """
     convert string based options into python objects/types
     Args:
@@ -275,7 +279,7 @@ def pythonize_options(options):
         dict with python types
     """
 
-    def parse_string(item):
+    def parse_string(item: str) -> Any:
         """
         check what kind of variable string represents and convert accordingly
         Args:
@@ -313,7 +317,7 @@ def pythonize_options(options):
     return {k: parse_string(v) for k, v in options.items()}
 
 
-def load_conf_yaml(file_path):
+def load_conf_yaml(file_path: str) -> dict:
     """loads yaml file and converts contents to nested dictionary
 
     Args:
@@ -322,7 +326,7 @@ def load_conf_yaml(file_path):
     """
 
     # helper function to get correct nesting from yaml file!
-    def to_nested_dict(obj):
+    def to_nested_dict(obj: Any) -> dict:
         resultDict = dict()
         if isinstance(obj, list):
             for item in obj:
@@ -349,7 +353,7 @@ def load_conf_yaml(file_path):
     return to_nested_dict(d)
 
 
-def stringify_dict(d):
+def stringify_dict(d: dict) -> dict:
     """convert keys and vals into strings
     Args:
         d (dict): dictionary
@@ -361,7 +365,7 @@ def stringify_dict(d):
     return {str(key): str(val) for key, val in d.items()}
 
 
-def registerLoggingCallback(callback):
+def registerLoggingCallback(callback: Callback) -> None:
     """
     register a custom logging callback function with tuplex
     Args:
@@ -373,7 +377,7 @@ def registerLoggingCallback(callback):
     from ..libexec.tuplex import registerLoggingCallback as ccRegister
 
     # create a wrapper to capture exceptions properly and avoid crashing
-    def wrapper(level, time_info, logger_name, msg):
+    def wrapper(level: int, time_info: str, logger_name: str, msg: str) -> None:
         args = (level, time_info, logger_name, msg)
 
         try:
@@ -384,7 +388,7 @@ def registerLoggingCallback(callback):
     ccRegister(wrapper)
 
 
-def logging_callback(level, time_info, logger_name, msg):
+def logging_callback(level: int, time_info: str, logger_name: str, msg: str) -> None:
     """
     this is a callback function which can be used to redirect C++ logging to python logging.
     :param level: logging level as integer, for values cf. PythonCommon.h
@@ -441,7 +445,7 @@ __exit_handlers__ = []
 
 
 # register at exit function to take care of exit handlers
-def auto_shutdown_all():
+def auto_shutdown_all() -> None:
     """
     helper function to automatially shutdown whatever is in the global exit handler array. Resets global variable.
     Returns:
@@ -456,13 +460,15 @@ def auto_shutdown_all():
             if msg:
                 logging.info(msg)
             func(args)
-            logging.info("Shutdown {} successfully".format(name))
+            logging.debug("Shutdown {} successfully".format(name))
         except Exception:
             logging.error("Failed to shutdown {}".format(name))
     __exit_handlers__ = []
 
 
-def register_auto_shutdown(name, func, args, msg=None):
+def register_auto_shutdown(
+    name: str, func: Callable, args: tuple, msg: Optional[str] = None
+) -> None:
     global __exit_handlers__
     __exit_handlers__.append((name, func, args, msg))
 
@@ -470,7 +476,7 @@ def register_auto_shutdown(name, func, args, msg=None):
 atexit.register(auto_shutdown_all)
 
 
-def is_process_running(name):
+def is_process_running(name: str) -> bool:
     """
     helper function to check if a process is running on the local machine
     Args:
@@ -490,7 +496,9 @@ def is_process_running(name):
     return False
 
 
-def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
+def mongodb_uri(
+    mongodb_url: str, mongodb_port: int, db_name: str = "tuplex-history"
+) -> str:
     """
     constructs a fully qualified MongoDB URI
     Args:
@@ -505,8 +513,11 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
 
 
 def check_mongodb_connection(
-    mongodb_url, mongodb_port, db_name="tuplex-history", timeout=10.0
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    db_name: str = "tuplex-history",
+    timeout: float = 10.0,
+) -> None:
     """
     connects to a MongoDB database instance, raises exception if connection fails
     Args:
@@ -564,7 +575,7 @@ def check_mongodb_connection(
     logging.debug("Connection test to MongoDB succeeded")
 
 
-def shutdown_process_via_kill(pid):
+def shutdown_process_via_kill(pid: int) -> None:
     """
     issues a KILL signals to a process with pid
     Args:
@@ -578,12 +589,12 @@ def shutdown_process_via_kill(pid):
 
 
 def find_or_start_mongodb(
-    mongodb_url,
-    mongodb_port,
-    mongodb_datapath,
-    mongodb_logpath,
-    db_name="tuplex-history",
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    mongodb_datapath: str,
+    mongodb_logpath: str,
+    db_name: str = "tuplex-history",
+) -> None:
     """
     attempts to connect to a MongoDB database. If no running local MongoDB is found, will auto-start a mongodb database. R
     aises exception when fails.
@@ -717,7 +728,7 @@ def find_or_start_mongodb(
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 
-def log_gunicorn_errors(logpath):
+def log_gunicorn_errors(logpath: str) -> None:
     """
     uses logging module to print out gunicorn errors if something went wrong
     Args:
@@ -739,7 +750,9 @@ def log_gunicorn_errors(logpath):
             logging.error("Gunicorn error log:\n {}".format("".join(lines[first_idx:])))
 
 
-def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
+def find_or_start_webui(
+    mongo_uri: str, hostname: str, port: int, web_logfile: str
+) -> None:
     """
     tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
     Args:
@@ -950,7 +963,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             "Adding auto-shutdown of process with PID={} (WebUI)".format(ui_pid)
         )
 
-        def shutdown_gunicorn(pid):
+        def shutdown_gunicorn(pid: int) -> None:
             pids_to_kill = []
 
             # iterate over all gunicorn processes and kill them all
@@ -991,7 +1004,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         return version_info
 
 
-def ensure_webui(options):
+def ensure_webui(options: dict) -> None:
     """
     Helper function to ensure WebUI/MongoDB is auto-started when webui is specified
     Args:
@@ -1054,7 +1067,7 @@ def ensure_webui(options):
         webui_uri = webui_url + ":" + str(webui_port)
         if not webui_uri.startswith("http"):
             webui_uri = "http://" + webui_uri
-        print("Tuplex WebUI can be accessed under {}".format(webui_uri))
+        _logger.info("Tuplex WebUI can be accessed under {}".format(webui_uri))
     except Exception as e:
         logging.error(
             "Failed to start or connect to Tuplex WebUI. Details: {}".format(e)

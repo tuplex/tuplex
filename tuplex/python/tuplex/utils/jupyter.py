@@ -19,14 +19,14 @@ import ipykernel
 from notebook.notebookapp import list_running_servers
 
 
-def get_jupyter_notebook_info():
+def get_jupyter_notebook_info() -> dict:
     """
     retrieve infos about the currently running jupyter notebook if possible
     Returns: dict with several info attributes. If info for current notebook could not be retrieved, returns empty dict
 
     """
 
-    def get(url):
+    def get(url: str) -> dict:
         req = urllib.request.Request(url, headers={"content-type": "application/json"})
         response = urllib.request.urlopen(req)
         return json.loads(response.read())

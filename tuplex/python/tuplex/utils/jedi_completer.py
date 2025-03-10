@@ -9,20 +9,24 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
+from typing import Any, List
+
 from jedi import Interpreter, settings
-from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.completion import CompleteEvent, Completer, Completion
+from prompt_toolkit.document import Document
 
 
 class JediCompleter(Completer):
     """REPL Completer using jedi"""
 
-    def __init__(self, get_locals):
+    def __init__(self, get_locals: Any) -> None:
         # per default jedi is case insensitive, however we want it to be case sensitive
         settings.case_insensitive_completion = False
-
         self.get_locals = get_locals
 
-    def get_completions(self, document, complete_event):
+    def get_completions(
+        self, document: Document, complete_event: CompleteEvent
+    ) -> List[Completion]:
         _locals = self.get_locals()
         interpreter = Interpreter(document.text, [_locals])
 

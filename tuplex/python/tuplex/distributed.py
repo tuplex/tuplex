@@ -11,6 +11,7 @@
 
 try:
     import boto3
+    import botocore
     import botocore.exceptions
 except Exception:
     # ignore here, because boto3 is optional
@@ -24,34 +25,37 @@ import os
 import sys
 import threading
 import time
+from typing import Optional, Tuple
 
 # Tuplex specific imports
 from tuplex.utils.common import current_user, host_name
 
+_logger = logging.getLogger(__name__)
 
-def current_iam_user():
+
+def current_iam_user() -> str:
     iam = boto3.resource("iam")
     user = iam.CurrentUser()
     return user.user_name.lower()
 
 
-def default_lambda_name():
+def default_lambda_name() -> str:
     return "tuplex-lambda-runner"
 
 
-def default_lambda_role():
+def default_lambda_role() -> str:
     return "tuplex-lambda-role"
 
 
-def default_bucket_name():
+def default_bucket_name() -> str:
     return "tuplex-" + current_iam_user()
 
 
-def default_scratch_dir():
+def default_scratch_dir() -> str:
     return default_bucket_name() + "/scratch"
 
 
-def current_region():
+def current_region() -> str:
     session = boto3.session.Session()
     region = session.region_name
 
@@ -62,7 +66,9 @@ def current_region():
     return region
 
 
-def check_credentials(aws_access_key_id=None, aws_secret_access_key=None):
+def check_credentials(
+    aws_access_key_id: Optional[str] = None, aws_secret_access_key: Optional[str] = None
+) -> bool:
     kwargs = {}
     if isinstance(aws_access_key_id, str):
         kwargs["aws_access_key_id"] = aws_access_key_id
@@ -81,7 +87,9 @@ def check_credentials(aws_access_key_id=None, aws_secret_access_key=None):
     return True
 
 
-def ensure_s3_bucket(s3_client, bucket_name, region):
+def ensure_s3_bucket(
+    s3_client: botocore.client.S3, bucket_name: str, region: str
+) -> None:
     bucket_names = list(map(lambda b: b["Name"], s3_client.list_buckets()["Buckets"]))
 
     if bucket_name not in bucket_names:
@@ -105,7 +113,7 @@ def ensure_s3_bucket(s3_client, bucket_name, region):
         logging.info("Found bucket {}".format(bucket_name))
 
 
-def create_lambda_role(iam_client, lambda_role):
+def create_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> None:
     # Roles required for AWS Lambdas
     trust_policy = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
     lambda_access_to_s3 = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:*MultipartUpload*","s3:Get*","s3:ListBucket","s3:Put*"],"Resource":"*"}]}'
@@ -139,7 +147,7 @@ def create_lambda_role(iam_client, lambda_role):
         raise Exception("Failed to create AWS Lambda Role.")
 
 
-def remove_lambda_role(iam_client, lambda_role):
+def remove_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> None:
     # detach policies...
     try:
         iam_client.detach_role_policy(
@@ -165,11 +173,12 @@ def remove_lambda_role(iam_client, lambda_role):
                 )
             )
 
-    # delete role...
     iam_client.delete_role(RoleName=lambda_role)
 
 
-def setup_lambda_role(iam_client, lambda_role, region, overwrite):
+def setup_lambda_role(
+    iam_client: botocore.client.IAM, lambda_role: str, region: str, overwrite: bool
+) -> None:
     try:
         response = iam_client.get_role(RoleName=lambda_role)
         logging.info("Found Lambda role from {}".format(response["Role"]["CreateDate"]))
@@ -187,7 +196,7 @@ def setup_lambda_role(iam_client, lambda_role, region, overwrite):
         create_lambda_role(iam_client, lambda_role)
 
 
-def sizeof_fmt(num, suffix="B"):
+def sizeof_fmt(num: int, suffix: str = "B") -> str:
     # from https://stackoverflow.com/questions/1094841/get-human-readable-version-of-file-size
     for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
@@ -197,13 +206,13 @@ def sizeof_fmt(num, suffix="B"):
 
 
 class ProgressPercentage(object):
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self._filename = filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
         self._lock = threading.Lock()
 
-    def __call__(self, bytes_amount):
+    def __call__(self, bytes_amount: int) -> None:
         # To simplify, assume this is hooked up to a single filename
         with self._lock:
             self._seen_so_far += bytes_amount
@@ -220,7 +229,7 @@ class ProgressPercentage(object):
             sys.stdout.flush()
 
 
-def s3_split_uri(uri):
+def s3_split_uri(uri: str) -> Tuple[str, str]:
     assert "/" in uri, "at least one / is required!"
     uri = uri.replace("s3://", "")
 
@@ -230,16 +239,16 @@ def s3_split_uri(uri):
 
 
 def upload_lambda(
-    iam_client,
-    lambda_client,
-    lambda_function_name,
-    lambda_role,
-    lambda_zip_file,
-    overwrite=False,
-    s3_client=None,
-    s3_scratch_space=None,
-    quiet=False,
-):
+    iam_client: Optional[str],
+    lambda_client: Optional[str],
+    lambda_function_name: Optional[str],
+    lambda_role: Optional[str],
+    lambda_zip_file: Optional[str],
+    overwrite: bool = False,
+    s3_client: botocore.client.S3 = None,
+    s3_scratch_space: Optional[str] = None,
+    quiet: bool = False,
+) -> dict:
     # AWS only allows 50MB to be uploaded directly via request. Else, requires S3 upload.
 
     ZIP_UPLOAD_LIMIT_SIZE = 50000000
@@ -396,7 +405,7 @@ def upload_lambda(
     return response
 
 
-def find_lambda_package():
+def find_lambda_package() -> Optional[str]:
     """
     Check whether a compatible zip file in tuplex/other could be found for auto-upload
     Returns: None or path to lambda zip to upload
@@ -415,17 +424,17 @@ def find_lambda_package():
 
 
 def setup_aws(
-    aws_access_key=None,
-    aws_secret_key=None,
-    overwrite=True,
-    iam_user=None,
-    lambda_name=None,
-    lambda_role=None,
-    lambda_file=None,
-    region=None,
-    s3_scratch_uri=None,
-    quiet=False,
-):
+    aws_access_key: Optional[str] = None,
+    aws_secret_key: Optional[str] = None,
+    overwrite: Optional[str] = True,
+    iam_user: Optional[str] = None,
+    lambda_name: Optional[str] = None,
+    lambda_role: Optional[str] = None,
+    lambda_file: Optional[str] = None,
+    region: Optional[str] = None,
+    s3_scratch_uri: Optional[str] = None,
+    quiet: bool = False,
+) -> None:
     start_time = time.time()
 
     # detect defaults. Important to do this here, because don't want to always invoke boto3/botocore
@@ -497,4 +506,6 @@ def setup_aws(
 
     # done, print if quiet was not set to False
     if not quiet:
-        print("\nCompleted lambda setup in {:.2f}s".format(time.time() - start_time))
+        _logger.info(
+            "\nCompleted lambda setup in {:.2f}s".format(time.time() - start_time)
+        )

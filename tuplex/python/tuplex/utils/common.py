@@ -25,6 +25,7 @@ import tempfile
 import time
 import urllib.request
 from datetime import datetime
+from typing import Callable
 
 import iso8601
 import psutil
@@ -42,12 +43,12 @@ try:
 except ImportError:
     __version__ = "dev"
 
-from typing import Callable, Optional
+from typing import Any, Optional, Union
 
 _logger = logging.getLogger(__name__)
 
 
-def cmd_exists(cmd):
+def cmd_exists(cmd: str) -> bool:
     """
     checks whether command `cmd` exists or not
     Args:
@@ -59,7 +60,7 @@ def cmd_exists(cmd):
     return shutil.which(cmd) is not None
 
 
-def is_shared_lib(path):
+def is_shared_lib(path: str) -> bool:
     """
     Args:
         path: str path to a file
@@ -78,7 +79,7 @@ def is_shared_lib(path):
     )
 
 
-def current_timestamp():
+def current_timestamp() -> str:
     """
     get current time as isoformatted string
     Returns: isoformatted current time (utc)
@@ -87,7 +88,7 @@ def current_timestamp():
     return str(datetime.now().isoformat())
 
 
-def current_user():
+def current_user() -> str:
     """
     retrieve current user name
     Returns: username as string
@@ -99,7 +100,7 @@ def current_user():
         return getpass.getuser()
 
 
-def host_name():
+def host_name() -> str:
     """
     retrieve host name to identify machine
     Returns: some hostname as string
@@ -111,7 +112,7 @@ def host_name():
         return socket.gethostbyaddr(socket.gethostname())[0]
 
 
-def post_json(url, data):
+def post_json(url: str, data: dict) -> dict:
     """
     perform a post request to a REST endpoint with JSON
     Args:
@@ -130,12 +131,12 @@ def post_json(url, data):
     return json.loads(response.read())
 
 
-def get_json(url, timeout=10):
+def get_json(url: str, timeout: float = 10) -> dict:
     """
     perform a GET request to given URL
     Args:
         url: hostname & port
-
+        timeout: timeout in s
     Returns:
         python dictionary of decoded json
     """
@@ -145,7 +146,7 @@ def get_json(url, timeout=10):
     return json.loads(response.read())
 
 
-def in_jupyter_notebook():
+def in_jupyter_notebook() -> bool:
     """check whether frameworks runs in jupyter notebook.
 
     Returns: ``True`` if the module is running in IPython kernel,
@@ -167,7 +168,7 @@ def in_jupyter_notebook():
         return False  # Probably standard Python interpreter
 
 
-def in_google_colab():
+def in_google_colab() -> bool:
     """
         check whether framework runs in Google Colab environment
     Returns:
@@ -183,7 +184,7 @@ def in_google_colab():
     return shell_name_matching
 
 
-def is_in_interactive_mode():
+def is_in_interactive_mode() -> bool:
     """checks whether the module is loaded in an interactive shell session or not
 
     Returns: True when in interactive mode. Note that Jupyter notebook also returns True here.
@@ -193,7 +194,7 @@ def is_in_interactive_mode():
     return bool(getattr(sys, "ps1", sys.flags.interactive))
 
 
-def flatten_dict(d, sep=".", parent_key=""):
+def flatten_dict(d: dict, sep: str = ".", parent_key: str = "") -> dict:
     """ flattens a nested dictionary into a flat dictionary by concatenating keys with the separator.
     Args:
          d (dict): The dictionary to flatten
@@ -214,7 +215,7 @@ def flatten_dict(d, sep=".", parent_key=""):
     return dict(items)
 
 
-def unflatten_dict(dictionary, sep="."):
+def unflatten_dict(dictionary: dict, sep: str = ".") -> dict:
     """
     unflattens a dictionary into a nested dictionary according to sep
     Args:
@@ -240,7 +241,7 @@ def unflatten_dict(dictionary, sep="."):
     return resultDict
 
 
-def save_conf_yaml(conf, file_path):
+def save_conf_yaml(conf: dict, file_path: str) -> None:
     """saves a dictionary holding the configuration options to Tuplex Yaml format. \
     Dict can be either flattened or not.
 
@@ -249,7 +250,7 @@ def save_conf_yaml(conf, file_path):
         file_path:
     """
 
-    def beautify_nesting(d):
+    def beautify_nesting(d: Union[dict, Any]) -> Any:
         # i.e. make lists out of dicts
         if isinstance(d, dict):
             items = d.items()
@@ -365,7 +366,7 @@ def stringify_dict(d: dict) -> dict:
     return {str(key): str(val) for key, val in d.items()}
 
 
-def registerLoggingCallback(callback: Callback) -> None:
+def registerLoggingCallback(callback: Callable) -> None:
     """
     register a custom logging callback function with tuplex
     Args:

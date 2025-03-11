@@ -10,6 +10,7 @@
 # ----------------------------------------------------------------------------------------------------------------------#
 
 import logging
+from typing import Any, Callable, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import cloudpickle
 
@@ -29,10 +30,10 @@ max_rows = 9223372036854775807
 
 
 class DataSet:
-    def __init__(self):
+    def __init__(self) -> None:
         self._dataSet: _DataSet = None
 
-    def unique(self):
+    def unique(self) -> "DataSet":
         """removes duplicates from Dataset (out-of-order). Equivalent to a DISTINCT clause in a SQL-statement.
         Returns:
             tuplex.dataset.Dataset: A Tuplex Dataset object that allows further ETL operations.
@@ -45,7 +46,7 @@ class DataSet:
         ds._dataSet = self._dataSet.unique()
         return ds
 
-    def map(self, ftor):
+    def map(self, ftor: Callable) -> "DataSet":
         """ performs a map operation using the provided udf function over the dataset and
         returns a dataset for further processing.
 
@@ -79,7 +80,7 @@ class DataSet:
         ds._dataSet = self._dataSet.map(code, cloudpickle.dumps(ftor), g)
         return ds
 
-    def filter(self, ftor):
+    def filter(self, ftor: Callable) -> "DataSet":
         """ performs a map operation using the provided udf function over the dataset and
         returns a dataset for further processing.
 
@@ -109,7 +110,7 @@ class DataSet:
         ds._dataSet = self._dataSet.filter(code, cloudpickle.dumps(ftor), g)
         return ds
 
-    def collect(self):
+    def collect(self) -> List[Any]:
         """action that generates a physical plan, processes data and collects result then as list of tuples.
 
         Returns:
@@ -121,7 +122,7 @@ class DataSet:
         )
         return self._dataSet.collect()
 
-    def take(self, nrows=5):
+    def take(self, nrows: int = 5) -> List[Any]:
         """action that generates a physical plan, processes data and collects the top results then as list of tuples.
 
         Args:
@@ -140,7 +141,7 @@ class DataSet:
 
         return self._dataSet.take(nrows)
 
-    def show(self, nrows=None):
+    def show(self, nrows: Optional[int] = None) -> None:
         """action that generates a physical plan, processes data and prints results as nicely formatted
         ASCII table to stdout.
 
@@ -158,7 +159,7 @@ class DataSet:
 
         self._dataSet.show(nrows)
 
-    def resolve(self, eclass, ftor):
+    def resolve(self, eclass: TypeVar, ftor: Callable) -> "DataSet":
         """Adds a resolver operator to the pipeline. The signature of ftor needs to be identical to the one of the preceding operator.
 
         Args:
@@ -197,7 +198,7 @@ class DataSet:
         ds._dataSet = self._dataSet.resolve(ec, code, cloudpickle.dumps(ftor), g)
         return ds
 
-    def withColumn(self, column, ftor):
+    def withColumn(self, column: str, ftor: Callable) -> "DataSet":
         """appends a new column to the dataset by calling ftor over existing tuples
 
         Args:
@@ -227,7 +228,7 @@ class DataSet:
         ds._dataSet = self._dataSet.withColumn(column, code, cloudpickle.dumps(ftor), g)
         return ds
 
-    def mapColumn(self, column, ftor):
+    def mapColumn(self, column: Union[int, str], ftor: Callable) -> "DataSet":
         """maps directly one column. UDF takes as argument directly the value of the specified column and will overwrite
         that column with the result. If you need access to multiple columns, use withColumn instead.
         If the column name already exists, it will be overwritten.
@@ -258,7 +259,7 @@ class DataSet:
         ds._dataSet = self._dataSet.mapColumn(column, code, cloudpickle.dumps(ftor), g)
         return ds
 
-    def selectColumns(self, columns):
+    def selectColumns(self, columns: List[Union[str, int]]) -> "DataSet":
         """selects a subset of columns as defined through columns which is a list or a single column
 
         Args:
@@ -289,7 +290,7 @@ class DataSet:
         ds._dataSet = self._dataSet.selectColumns(columns)
         return ds
 
-    def renameColumn(self, key, newColumnName):
+    def renameColumn(self, key: str, newColumnName: str) -> "DataSet":
         """rename a column in dataset
         Args:
             key: str|int, old column name or (0-indexed) position.
@@ -315,7 +316,7 @@ class DataSet:
             raise TypeError("key must be int or str")
         return ds
 
-    def ignore(self, eclass):
+    def ignore(self, eclass: TypeVar) -> "DataSet":
         """ignores exceptions of type eclass caused by previous operator
 
         Args:
@@ -342,7 +343,7 @@ class DataSet:
         ds._dataSet = self._dataSet.ignore(ec)
         return ds
 
-    def cache(self, store_specialized=True):
+    def cache(self, store_specialized: bool = True) -> "DataSet":
         """materializes rows in main-memory for reuse with several pipelines. Can be also used to benchmark certain pipeline costs
 
         Args:
@@ -361,7 +362,7 @@ class DataSet:
         return ds
 
     @property
-    def columns(self):
+    def columns(self) -> List[str]:
         """retrieve names of columns if assigned
 
         Returns:
@@ -371,7 +372,7 @@ class DataSet:
         return cols if len(cols) > 0 else None
 
     @property
-    def types(self):
+    def types(self) -> List[TypeVar]:
         """output schema as list of type objects of the dataset. If the dataset has an error, None is returned.
 
         Returns:
@@ -381,8 +382,13 @@ class DataSet:
         return types
 
     def join(
-        self, dsRight, leftKeyColumn, rightKeyColumn, prefixes=None, suffixes=None
-    ):
+        self,
+        dsRight: "DataSet",
+        leftKeyColumn: str,
+        rightKeyColumn: str,
+        prefixes: Union[None, Tuple[str, str], List[str]] = None,
+        suffixes: Union[None, Tuple[str, str], List[str]] = None,
+    ) -> "DataSet":
         """
         (inner) join with other dataset
         Args:
@@ -434,8 +440,13 @@ class DataSet:
         return ds
 
     def leftJoin(
-        self, dsRight, leftKeyColumn, rightKeyColumn, prefixes=None, suffixes=None
-    ):
+        self,
+        dsRight: "DataSet",
+        leftKeyColumn: str,
+        rightKeyColumn: str,
+        prefixes: Union[None, Tuple[str, str], List[str]] = None,
+        suffixes: Union[None, Tuple[str, str], List[str]] = None,
+    ) -> "DataSet":
         """
         left (outer) join with other dataset
         Args:
@@ -488,18 +499,18 @@ class DataSet:
 
     def tocsv(
         self,
-        path,
-        part_size=0,
-        num_rows=max_rows,
-        num_parts=0,
-        part_name_generator=None,
-        null_value=None,
-        header=True,
-    ):
+        path: str,
+        part_size: int = 0,
+        num_rows: int = max_rows,
+        num_parts: int = 0,
+        part_name_generator: Optional[Callable] = None,
+        null_value: Optional[Any] = None,
+        header: bool = True,
+    ) -> None:
         """ save dataset to one or more csv files. Triggers execution of pipeline.
         Args:
             path: path where to save files to
-            split_size: optional size in bytes for each part to not exceed.
+            part_size: optional size in bytes for each part to not exceed.
             num_rows: limit number of output rows
             num_parts: number of parts to split output into. The last part will be the smallest
             part_name_generator: optional name generator function to the output parts, receives an integer \
@@ -542,12 +553,12 @@ class DataSet:
 
     def toorc(
         self,
-        path,
-        part_size=0,
-        num_rows=max_rows,
-        num_parts=0,
-        part_name_generator=None,
-    ):
+        path: str,
+        part_size: int = 0,
+        num_rows: int = max_rows,
+        num_parts: int = 0,
+        part_name_generator: Callable = None,
+    ) -> None:
         """ save dataset to one or more orc files. Triggers execution of pipeline.
         Args:
         path: path where to save files to
@@ -579,7 +590,9 @@ class DataSet:
 
         self._dataSet.toorc(path, code, code_pickled, num_parts, part_size, num_rows)
 
-    def aggregate(self, combine, aggregate, initial_value):
+    def aggregate(
+        self, combine: Callable, aggregate: Callable, initial_value: Any
+    ) -> "Dataset":  # noqa: F821
         """
         cf. aggregateByKey for details
         Args:
@@ -628,14 +641,20 @@ class DataSet:
         )
         return ds
 
-    def aggregateByKey(self, combine, aggregate, initial_value, key_columns):
+    def aggregateByKey(
+        self,
+        combine: Callable,
+        aggregate: Callable,
+        initial_value: Any,
+        key_columns: Sequence[Union[int, str]],
+    ) -> "tuplex.Dataset":  # noqa: F821
         """
         An experimental aggregateByKey function similar to aggregate. There are several scenarios that do not work with this function yet and its performance hasn't been properly
         optimized either. Data is grouped by the supplied key_columns. Then, for each group a new aggregate is initialized using the initial_value, which can be thought of as a neutral value.
         The aggregate function is then called for each element and the current aggregate structure. It is guaranteed that the combine function is called at least once per group by applying the initial_value to the aggregate.
         Args:
-            combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value). E.g., cobmine = lambda agg1, agg2: agg1 + agg2. The initial value should be the neutral element.
-            aggregate: a UDF which produces a result by combining a value with the aggregate initialized by initial_value. E.g., aggreagte = lambda agg, value: agg + value sums up values.
+            combine: a UDF to combine two aggregates (results of the aggregate function or the initial_value). E.g., combine = lambda agg1, agg2: agg1 + agg2. The initial value should be the neutral element.
+            aggregate: a UDF which produces a result by combining a value with the aggregate initialized by initial_value. E.g., aggregate = lambda agg, value: agg + value sums up values.
             initial_value: a neutral initial value.
             key_columns: the columns to group the aggregate by, a sequence of a mix of strings or integers. If specified as a single string or number, aggregation is over a single column.
         Returns:
@@ -685,7 +704,7 @@ class DataSet:
         return ds
 
     @property
-    def exception_counts(self):
+    def exception_counts(self) -> dict:
         """
 
         Returns: dictionary of exception class names with integer keys, i.e. the counts. Returns None

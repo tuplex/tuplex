@@ -9,6 +9,7 @@
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
 
+import logging
 import os
 import sys
 
@@ -23,8 +24,10 @@ try:
 except (ImportError, NameError):
     __version__ = "dev"
 
+_logger = logging.getLogger(__name__)
 
-def TuplexBanner():
+
+def TuplexBanner() -> str:
     banner = """Welcome to\n
   _____            _
  |_   _|   _ _ __ | | _____  __
@@ -55,4 +58,4 @@ if is_in_interactive_mode() and not in_jupyter_notebook() and not in_google_cola
     shell.init(locals=_locals)
     shell.interact(banner=TuplexBanner() + "\n Interactive Shell mode")
 else:
-    print(TuplexBanner())
+    _logger.info(TuplexBanner())

@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import uuid
+from typing import Any, List, Optional, Tuple, Union
 
 from tuplex.utils.common import (
     current_user,
@@ -45,7 +46,9 @@ from .metrics import Metrics
 
 
 class Context:
-    def __init__(self, conf=None, name="", **kwargs):
+    def __init__(
+        self, conf: Union[None, str, dict] = None, name: str = "", **kwargs: dict
+    ) -> None:
         r"""creates new Context object, the main entry point for all operations with the Tuplex big data framework
 
         Args:
@@ -235,7 +238,13 @@ class Context:
         self.metrics = Metrics(python_metrics)
         assert self.metrics
 
-    def parallelize(self, value_list, columns=None, schema=None, auto_unpack=True):
+    def parallelize(
+        self,
+        value_list: List[Any],
+        columns: Optional[List[str]] = None,
+        schema: Optional[Union[Tuple, List]] = None,
+        auto_unpack: bool = True,
+    ) -> "DataSet":
         """passes data to the Tuplex framework. Must be a list of primitive objects (e.g. of type bool, int, float, str) or
         a list of (nested) tuples of these types.
 
@@ -273,14 +282,14 @@ class Context:
 
     def csv(
         self,
-        pattern,
-        columns=None,
-        header=None,
-        delimiter=None,
-        quotechar='"',
-        null_values=[""],
-        type_hints={},
-    ):
+        pattern: str,
+        columns: Optional[List[str]] = None,
+        header: Optional[bool] = None,
+        delimiter: Optional[str] = None,
+        quotechar: str = '"',
+        null_values: List[str] = [""],
+        type_hints: dict = {},
+    ) -> "DataSet":
         """reads csv (comma separated values) files. This function may either be provided with
         parameters that help to determine the delimiter, whether a header present or what kind
         of quote char is used. Overall, CSV parsing is done according to the RFC-4180 standard
@@ -350,11 +359,11 @@ class Context:
         )
         return ds
 
-    def text(self, pattern, null_values=None):
+    def text(self, pattern: str, null_values: Optional[List[str]] = None) -> "DataSet":
         """reads text files.
         Args:
             pattern     (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
-            null_values (List[str]): a list of string to interpret as None. When empty list or None, empty lines will be the empty string ''
+            null_values (List[str]): a list of strings to interpret as None. When empty list or None, empty lines will be the empty string ''
         Returns:
             tuplex.dataset.DataSet: A Tuplex Dataset object that allows further ETL operations
         """
@@ -372,7 +381,7 @@ class Context:
         ds._dataSet = self._context.text(pattern, null_values)
         return ds
 
-    def orc(self, pattern, columns=None):
+    def orc(self, pattern: str, columns: Optional[List[str]] = None) -> "DataSet":
         """reads orc files.
         Args:
             pattern (str): a file glob pattern, e.g. /data/file.csv or /data/\*.csv or /\*/\*csv
@@ -390,7 +399,7 @@ class Context:
         ds._dataSet = self._context.orc(pattern, columns)
         return ds
 
-    def options(self, nested=False):
+    def options(self, nested: bool = False) -> dict:
         """retrieves all framework parameters as dictionary
 
         Args:
@@ -411,7 +420,7 @@ class Context:
         else:
             return opt
 
-    def optionsToYAML(self, file_path="config.yaml"):
+    def optionsToYAML(self, file_path: str = "config.yaml") -> None:
         """saves options as yaml file to (local) filepath
 
         Args:
@@ -420,7 +429,7 @@ class Context:
 
         save_conf_yaml(self.options(), file_path)
 
-    def ls(self, pattern):
+    def ls(self, pattern: str) -> List[str]:
         """
         return a list of strings of all files found matching the pattern. The same pattern can be supplied to read inputs.
         Args:
@@ -433,7 +442,7 @@ class Context:
         assert self._context
         return self._context.ls(pattern)
 
-    def cp(self, pattern, target_uri):
+    def cp(self, pattern: str, target_uri: str) -> None:
         """
         copies all files matching the pattern to a target uri. If more than one file is found, a folder is created
          containing all the files relative to the longest shared path prefix.
@@ -448,7 +457,7 @@ class Context:
         assert self._context
         return self._context.cp(pattern, target_uri)
 
-    def rm(self, pattern):
+    def rm(self, pattern: str) -> None:
         """
         removes all files matching the pattern
         Args:
@@ -463,7 +472,7 @@ class Context:
         return self._context.rm(pattern)
 
     @property
-    def uiWebURL(self):
+    def uiWebURL(self) -> str:
         """
         retrieve URL of webUI if running
         Returns:

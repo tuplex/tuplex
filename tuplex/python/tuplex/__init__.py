@@ -10,6 +10,7 @@
 # ----------------------------------------------------------------------------------------------------------------------#
 
 import logging
+from typing import Optional, Union
 
 # expose aws setup for better convenience
 import tuplex.distributed
@@ -23,7 +24,12 @@ from .dataset import DataSet as DataSet
 
 
 # for convenience create a dummy function to return a default-configured Lambda context
-def LambdaContext(conf=None, name=None, s3_scratch_dir=None, **kwargs):
+def LambdaContext(
+    conf: Union[None, str, dict] = None,
+    name: Optional[str] = None,
+    s3_scratch_dir: Optional[str] = None,
+    **kwargs: dict,
+) -> Context:
     import uuid
 
     if s3_scratch_dir is None:

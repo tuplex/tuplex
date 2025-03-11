@@ -30,7 +30,7 @@ class Metrics:
     context object.
     """
 
-    def __init__(self, metrics: _Metrics):
+    def __init__(self, metrics: _Metrics) -> None:
         """
         Creates a Metrics object by using the context object
         to set its metric parameter and store the resulting
@@ -101,7 +101,7 @@ class Metrics:
         assert self._metrics
         return self._metrics.getJSONString()
 
-    def as_dict(self):
+    def as_dict(self) -> dict:
         """
         all measurements in nested dictionary
         Returns:

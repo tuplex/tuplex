@@ -11,8 +11,10 @@
 
 import ast
 import inspect
+import logging
 import re
 import types
+from typing import Callable, List, Tuple, Union
 
 # ALWAYS import cloudpickle before dill, b.c. of https://github.com/uqfoundation/dill/issues/383
 import dill
@@ -29,8 +31,10 @@ from tuplex.utils.source_vault import SourceVault, supports_lambda_closure
 # only export get_source function, rest shall be private.
 __all__ = ["get_source", "get_globals", "supports_lambda_closure"]
 
+_logger = logging.getLogger(__name__)
 
-def get_jupyter_raw_code(function_name):
+
+def get_jupyter_raw_code(function_name: str) -> str:
     # Ignore here unresolved reference, get_ipython() works in jupyter notebook.
     history_manager = get_ipython().history_manager  # noqa: F821
     hist = history_manager.get_range()
@@ -55,18 +59,20 @@ def get_jupyter_raw_code(function_name):
     return matched_cells[-1][2]
 
 
-def extractFunctionByName(code, func_name, return_linenos=False):
+def extractFunctionByName(
+    code: str, func_name: str, return_linenos: bool = False
+) -> Union[str, Tuple[str, int, int]]:
     class FunctionVisitor(ast.NodeVisitor):
-        def __init__(self):
-            self.lastStmtLineno = 0
-            self.funcInfo = []
+        def __init__(self) -> None:
+            self.lastStmtLineno: int = 0
+            self.funcInfo: List[dict] = []
 
-        def visit_FunctionDef(self, node):
-            print(self.lastStmtLineno)
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            _logger.debug(self.lastStmtLineno)
             self.generic_visit(node)
-            print(self.lastStmtLineno)
+            _logger.debug(self.lastStmtLineno)
 
-        def visit(self, node):
+        def visit(self, node: ast.AST) -> None:
             funcStartLineno = -1
             if hasattr(node, "lineno"):
                 self.lastStmtLineno = node.lineno
@@ -89,7 +95,7 @@ def extractFunctionByName(code, func_name, return_linenos=False):
     # find function with name
     candidates = filter(lambda x: x["name"] == func_name, fv.funcInfo)
 
-    def indent(s):
+    def indent(s: str) -> int:
         return len(s) - len(s.lstrip(" \t"))
 
     lines = code.split("\n")
@@ -106,9 +112,9 @@ def extractFunctionByName(code, func_name, return_linenos=False):
         return func_code
 
 
-def extract_function_code(function_name, raw_code):
+def extract_function_code(function_name: str, raw_code: str) -> str:
     # remove greedily up to num_tabs and num_spaces
-    def remove_tabs_and_spaces(line, num_tabs, num_spaces):
+    def remove_tabs_and_spaces(line: str, num_tabs: int, num_spaces: int) -> str:
         t = 0
         s = 0
         pos = 0
@@ -147,7 +153,7 @@ def extract_function_code(function_name, raw_code):
     return extractFunctionByName(out, function_name)
 
 
-def get_function_code(f):
+def get_function_code(f: Callable) -> str:
     """jupyter notebook, retrieve function history"""
     assert isinstance(f, types.FunctionType)
     function_name = f.__code__.co_name
@@ -175,7 +181,7 @@ def get_function_code(f):
 vault = SourceVault()
 
 
-def get_source(f):
+def get_source(f: Callable) -> str:
     """Jupyter notebook code reflection"""
 
     if isinstance(f, types.FunctionType):

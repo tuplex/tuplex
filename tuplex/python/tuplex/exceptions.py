@@ -8,9 +8,10 @@
 #  Created by Leonhard Spiegelberg first on 1/1/2021                                                                   #
 #  License: Apache 2.0                                                                                                 #
 # ----------------------------------------------------------------------------------------------------------------------#
+from typing import TypeVar
 
 
-def classToExceptionCode(cls):
+def classToExceptionCode(cls: TypeVar) -> int:
     """
     return C++ enum exception code for class
     Args:

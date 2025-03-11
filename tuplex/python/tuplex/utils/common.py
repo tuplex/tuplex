@@ -25,6 +25,7 @@ import tempfile
 import time
 import urllib.request
 from datetime import datetime
+from typing import Callable
 
 import iso8601
 import psutil
@@ -42,8 +43,12 @@ try:
 except ImportError:
     __version__ = "dev"
 
+from typing import Any, Optional, Union
 
-def cmd_exists(cmd):
+_logger = logging.getLogger(__name__)
+
+
+def cmd_exists(cmd: str) -> bool:
     """
     checks whether command `cmd` exists or not
     Args:
@@ -55,7 +60,7 @@ def cmd_exists(cmd):
     return shutil.which(cmd) is not None
 
 
-def is_shared_lib(path):
+def is_shared_lib(path: str) -> bool:
     """
     Args:
         path: str path to a file
@@ -74,7 +79,7 @@ def is_shared_lib(path):
     )
 
 
-def current_timestamp():
+def current_timestamp() -> str:
     """
     get current time as isoformatted string
     Returns: isoformatted current time (utc)
@@ -83,7 +88,7 @@ def current_timestamp():
     return str(datetime.now().isoformat())
 
 
-def current_user():
+def current_user() -> str:
     """
     retrieve current user name
     Returns: username as string
@@ -95,7 +100,7 @@ def current_user():
         return getpass.getuser()
 
 
-def host_name():
+def host_name() -> str:
     """
     retrieve host name to identify machine
     Returns: some hostname as string
@@ -107,7 +112,7 @@ def host_name():
         return socket.gethostbyaddr(socket.gethostname())[0]
 
 
-def post_json(url, data):
+def post_json(url: str, data: dict) -> dict:
     """
     perform a post request to a REST endpoint with JSON
     Args:
@@ -126,12 +131,12 @@ def post_json(url, data):
     return json.loads(response.read())
 
 
-def get_json(url, timeout=10):
+def get_json(url: str, timeout: float = 10) -> dict:
     """
     perform a GET request to given URL
     Args:
         url: hostname & port
-
+        timeout: timeout in s
     Returns:
         python dictionary of decoded json
     """
@@ -141,7 +146,7 @@ def get_json(url, timeout=10):
     return json.loads(response.read())
 
 
-def in_jupyter_notebook():
+def in_jupyter_notebook() -> bool:
     """check whether frameworks runs in jupyter notebook.
 
     Returns: ``True`` if the module is running in IPython kernel,
@@ -163,7 +168,7 @@ def in_jupyter_notebook():
         return False  # Probably standard Python interpreter
 
 
-def in_google_colab():
+def in_google_colab() -> bool:
     """
         check whether framework runs in Google Colab environment
     Returns:
@@ -179,7 +184,7 @@ def in_google_colab():
     return shell_name_matching
 
 
-def is_in_interactive_mode():
+def is_in_interactive_mode() -> bool:
     """checks whether the module is loaded in an interactive shell session or not
 
     Returns: True when in interactive mode. Note that Jupyter notebook also returns True here.
@@ -189,7 +194,7 @@ def is_in_interactive_mode():
     return bool(getattr(sys, "ps1", sys.flags.interactive))
 
 
-def flatten_dict(d, sep=".", parent_key=""):
+def flatten_dict(d: dict, sep: str = ".", parent_key: str = "") -> dict:
     """ flattens a nested dictionary into a flat dictionary by concatenating keys with the separator.
     Args:
          d (dict): The dictionary to flatten
@@ -210,7 +215,7 @@ def flatten_dict(d, sep=".", parent_key=""):
     return dict(items)
 
 
-def unflatten_dict(dictionary, sep="."):
+def unflatten_dict(dictionary: dict, sep: str = ".") -> dict:
     """
     unflattens a dictionary into a nested dictionary according to sep
     Args:
@@ -236,7 +241,7 @@ def unflatten_dict(dictionary, sep="."):
     return resultDict
 
 
-def save_conf_yaml(conf, file_path):
+def save_conf_yaml(conf: dict, file_path: str) -> None:
     """saves a dictionary holding the configuration options to Tuplex Yaml format. \
     Dict can be either flattened or not.
 
@@ -245,7 +250,7 @@ def save_conf_yaml(conf, file_path):
         file_path:
     """
 
-    def beautify_nesting(d):
+    def beautify_nesting(d: Union[dict, Any]) -> Any:
         # i.e. make lists out of dicts
         if isinstance(d, dict):
             items = d.items()
@@ -265,7 +270,7 @@ def save_conf_yaml(conf, file_path):
         f.write(out)
 
 
-def pythonize_options(options):
+def pythonize_options(options: dict) -> dict:
     """
     convert string based options into python objects/types
     Args:
@@ -275,7 +280,7 @@ def pythonize_options(options):
         dict with python types
     """
 
-    def parse_string(item):
+    def parse_string(item: str) -> Any:
         """
         check what kind of variable string represents and convert accordingly
         Args:
@@ -313,7 +318,7 @@ def pythonize_options(options):
     return {k: parse_string(v) for k, v in options.items()}
 
 
-def load_conf_yaml(file_path):
+def load_conf_yaml(file_path: str) -> dict:
     """loads yaml file and converts contents to nested dictionary
 
     Args:
@@ -322,7 +327,7 @@ def load_conf_yaml(file_path):
     """
 
     # helper function to get correct nesting from yaml file!
-    def to_nested_dict(obj):
+    def to_nested_dict(obj: Any) -> dict:
         resultDict = dict()
         if isinstance(obj, list):
             for item in obj:
@@ -349,7 +354,7 @@ def load_conf_yaml(file_path):
     return to_nested_dict(d)
 
 
-def stringify_dict(d):
+def stringify_dict(d: dict) -> dict:
     """convert keys and vals into strings
     Args:
         d (dict): dictionary
@@ -361,7 +366,7 @@ def stringify_dict(d):
     return {str(key): str(val) for key, val in d.items()}
 
 
-def registerLoggingCallback(callback):
+def registerLoggingCallback(callback: Callable) -> None:
     """
     register a custom logging callback function with tuplex
     Args:
@@ -373,7 +378,7 @@ def registerLoggingCallback(callback):
     from ..libexec.tuplex import registerLoggingCallback as ccRegister
 
     # create a wrapper to capture exceptions properly and avoid crashing
-    def wrapper(level, time_info, logger_name, msg):
+    def wrapper(level: int, time_info: str, logger_name: str, msg: str) -> None:
         args = (level, time_info, logger_name, msg)
 
         try:
@@ -384,7 +389,7 @@ def registerLoggingCallback(callback):
     ccRegister(wrapper)
 
 
-def logging_callback(level, time_info, logger_name, msg):
+def logging_callback(level: int, time_info: str, logger_name: str, msg: str) -> None:
     """
     this is a callback function which can be used to redirect C++ logging to python logging.
     :param level: logging level as integer, for values cf. PythonCommon.h
@@ -441,7 +446,7 @@ __exit_handlers__ = []
 
 
 # register at exit function to take care of exit handlers
-def auto_shutdown_all():
+def auto_shutdown_all() -> None:
     """
     helper function to automatially shutdown whatever is in the global exit handler array. Resets global variable.
     Returns:
@@ -456,13 +461,15 @@ def auto_shutdown_all():
             if msg:
                 logging.info(msg)
             func(args)
-            logging.info("Shutdown {} successfully".format(name))
+            logging.debug("Shutdown {} successfully".format(name))
         except Exception:
             logging.error("Failed to shutdown {}".format(name))
     __exit_handlers__ = []
 
 
-def register_auto_shutdown(name, func, args, msg=None):
+def register_auto_shutdown(
+    name: str, func: Callable, args: tuple, msg: Optional[str] = None
+) -> None:
     global __exit_handlers__
     __exit_handlers__.append((name, func, args, msg))
 
@@ -470,7 +477,7 @@ def register_auto_shutdown(name, func, args, msg=None):
 atexit.register(auto_shutdown_all)
 
 
-def is_process_running(name):
+def is_process_running(name: str) -> bool:
     """
     helper function to check if a process is running on the local machine
     Args:
@@ -490,7 +497,9 @@ def is_process_running(name):
     return False
 
 
-def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
+def mongodb_uri(
+    mongodb_url: str, mongodb_port: int, db_name: str = "tuplex-history"
+) -> str:
     """
     constructs a fully qualified MongoDB URI
     Args:
@@ -505,8 +514,11 @@ def mongodb_uri(mongodb_url, mongodb_port, db_name="tuplex-history"):
 
 
 def check_mongodb_connection(
-    mongodb_url, mongodb_port, db_name="tuplex-history", timeout=10.0
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    db_name: str = "tuplex-history",
+    timeout: float = 10.0,
+) -> None:
     """
     connects to a MongoDB database instance, raises exception if connection fails
     Args:
@@ -564,7 +576,7 @@ def check_mongodb_connection(
     logging.debug("Connection test to MongoDB succeeded")
 
 
-def shutdown_process_via_kill(pid):
+def shutdown_process_via_kill(pid: int) -> None:
     """
     issues a KILL signals to a process with pid
     Args:
@@ -578,12 +590,12 @@ def shutdown_process_via_kill(pid):
 
 
 def find_or_start_mongodb(
-    mongodb_url,
-    mongodb_port,
-    mongodb_datapath,
-    mongodb_logpath,
-    db_name="tuplex-history",
-):
+    mongodb_url: str,
+    mongodb_port: int,
+    mongodb_datapath: str,
+    mongodb_logpath: str,
+    db_name: str = "tuplex-history",
+) -> None:
     """
     attempts to connect to a MongoDB database. If no running local MongoDB is found, will auto-start a mongodb database. R
     aises exception when fails.
@@ -717,7 +729,7 @@ def find_or_start_mongodb(
         check_mongodb_connection(mongodb_url, mongodb_port, db_name)
 
 
-def log_gunicorn_errors(logpath):
+def log_gunicorn_errors(logpath: str) -> None:
     """
     uses logging module to print out gunicorn errors if something went wrong
     Args:
@@ -739,7 +751,9 @@ def log_gunicorn_errors(logpath):
             logging.error("Gunicorn error log:\n {}".format("".join(lines[first_idx:])))
 
 
-def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
+def find_or_start_webui(
+    mongo_uri: str, hostname: str, port: int, web_logfile: str
+) -> None:
     """
     tries to connect to Tuplex WebUI. If local uri is specified, autostarts WebUI.
     Args:
@@ -950,7 +964,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
             "Adding auto-shutdown of process with PID={} (WebUI)".format(ui_pid)
         )
 
-        def shutdown_gunicorn(pid):
+        def shutdown_gunicorn(pid: int) -> None:
             pids_to_kill = []
 
             # iterate over all gunicorn processes and kill them all
@@ -991,7 +1005,7 @@ def find_or_start_webui(mongo_uri, hostname, port, web_logfile):
         return version_info
 
 
-def ensure_webui(options):
+def ensure_webui(options: dict) -> None:
     """
     Helper function to ensure WebUI/MongoDB is auto-started when webui is specified
     Args:
@@ -1054,7 +1068,7 @@ def ensure_webui(options):
         webui_uri = webui_url + ":" + str(webui_port)
         if not webui_uri.startswith("http"):
             webui_uri = "http://" + webui_uri
-        print("Tuplex WebUI can be accessed under {}".format(webui_uri))
+        _logger.info("Tuplex WebUI can be accessed under {}".format(webui_uri))
     except Exception as e:
         logging.error(
             "Failed to start or connect to Tuplex WebUI. Details: {}".format(e)

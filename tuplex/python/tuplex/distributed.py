@@ -12,6 +12,7 @@
 try:
     import boto3
     import botocore
+    import botocore.client
     import botocore.exceptions
 except Exception:
     # ignore here, because boto3 is optional
@@ -88,7 +89,7 @@ def check_credentials(
 
 
 def ensure_s3_bucket(
-    s3_client: botocore.client.S3, bucket_name: str, region: str
+    s3_client: "botocore.client.S3", bucket_name: str, region: str
 ) -> None:
     bucket_names = list(map(lambda b: b["Name"], s3_client.list_buckets()["Buckets"]))
 
@@ -113,7 +114,7 @@ def ensure_s3_bucket(
         logging.info("Found bucket {}".format(bucket_name))
 
 
-def create_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> None:
+def create_lambda_role(iam_client: "botocore.client.IAM", lambda_role: str) -> None:
     # Roles required for AWS Lambdas
     trust_policy = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
     lambda_access_to_s3 = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:*MultipartUpload*","s3:Get*","s3:ListBucket","s3:Put*"],"Resource":"*"}]}'
@@ -147,7 +148,7 @@ def create_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> Non
         raise Exception("Failed to create AWS Lambda Role.")
 
 
-def remove_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> None:
+def remove_lambda_role(iam_client: "botocore.client.IAM", lambda_role: str) -> None:
     # detach policies...
     try:
         iam_client.detach_role_policy(
@@ -177,7 +178,7 @@ def remove_lambda_role(iam_client: botocore.client.IAM, lambda_role: str) -> Non
 
 
 def setup_lambda_role(
-    iam_client: botocore.client.IAM, lambda_role: str, region: str, overwrite: bool
+    iam_client: "botocore.client.IAM", lambda_role: str, region: str, overwrite: bool
 ) -> None:
     try:
         response = iam_client.get_role(RoleName=lambda_role)
@@ -245,7 +246,7 @@ def upload_lambda(
     lambda_role: Optional[str],
     lambda_zip_file: Optional[str],
     overwrite: bool = False,
-    s3_client: botocore.client.S3 = None,
+    s3_client: "botocore.client.S3" = None,
     s3_scratch_space: Optional[str] = None,
     quiet: bool = False,
 ) -> dict:

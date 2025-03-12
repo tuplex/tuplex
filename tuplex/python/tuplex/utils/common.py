@@ -31,6 +31,8 @@ import iso8601
 import psutil
 import yaml
 
+from .dllist import dllist
+
 try:
     import pwd
 except ImportError:
@@ -1077,3 +1079,19 @@ def ensure_webui(options: dict) -> None:
         # log gunicorn errors for local startup
         if os.path.isfile(gunicorn_logpath) and "localhost" == webui_url:
             log_gunicorn_errors(gunicorn_logpath)
+
+def pyarrow_aws_sdk_cpp_fix() -> None:
+    """Help fix issue of pyarrow (frequent because pyarrow seems to be shipped very often)
+    Call this function BEFORE initializing the _Context object from the tuplex C extension object."""
+    # PyArrow always initializes AWS SDK. Because Tuplex may initialize it as well,
+    # skip in the presence of the arrow lib being loaded
+    # the AWS SDK initialization.
+
+    loaded_shared_objects = dllist()
+    pyarrow_loaded = any("pyarrow/lib" in path for path in loaded_shared_objects)
+
+    if pyarrow_loaded:
+        from tuplex.libexec.tuplex import setExternalAwssdk
+
+        # Calling this function will prevent Tuplex from calling initAWSSDK and shutdownAWSSDK.
+        setExternalAwssdk(True)

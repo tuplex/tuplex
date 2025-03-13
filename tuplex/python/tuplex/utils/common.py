@@ -1080,6 +1080,7 @@ def ensure_webui(options: dict) -> None:
         if os.path.isfile(gunicorn_logpath) and "localhost" == webui_url:
             log_gunicorn_errors(gunicorn_logpath)
 
+
 def pyarrow_aws_sdk_cpp_fix() -> None:
     """Help fix issue of pyarrow (frequent because pyarrow seems to be shipped very often)
     Call this function BEFORE initializing the _Context object from the tuplex C extension object."""

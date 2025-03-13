@@ -1085,13 +1085,14 @@ def pyarrow_aws_sdk_cpp_fix() -> None:
     Call this function BEFORE initializing the _Context object from the tuplex C extension object."""
     # PyArrow always initializes AWS SDK. Because Tuplex may initialize it as well,
     # skip in the presence of the arrow lib being loaded
-    # the AWS SDK initialization.
+    # the AWS SDK initialization on macos. It doesn't seem to be a problem on linux.
 
-    loaded_shared_objects = dllist()
-    pyarrow_loaded = any("pyarrow/lib" in path for path in loaded_shared_objects)
+    if os.name == "posix" and sys.platform == "darwin":
+        loaded_shared_objects = dllist()
+        pyarrow_loaded = any("pyarrow/lib" in path for path in loaded_shared_objects)
 
-    if pyarrow_loaded:
-        from tuplex.libexec.tuplex import setExternalAwssdk
+        if pyarrow_loaded:
+            from tuplex.libexec.tuplex import setExternalAwssdk
 
-        # Calling this function will prevent Tuplex from calling initAWSSDK and shutdownAWSSDK.
-        setExternalAwssdk(True)
+            # Calling this function will prevent Tuplex from calling initAWSSDK and shutdownAWSSDK.
+            setExternalAwssdk(True)

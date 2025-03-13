@@ -60,6 +60,13 @@ namespace tuplex {
      * @return true/false.
      */
     extern bool isValidAWSZone(const std::string& zone);
+
+    /*!
+    * Use this function to suggest to Tuplex the state of the AWS SDK, e.g. if in the process the
+    * Aws sdk is already initialized in some form.
+    * @param overrideAwssdkInitializedValue
+    */
+    extern void setExternalAwssdk(bool overrideAwssdkInitializedValue);
 }
 
 // Amazon frequently changes the parameters of lambda functions,

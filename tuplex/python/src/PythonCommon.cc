@@ -59,8 +59,4 @@ namespace tuplex {
         // return None
         return py::none();
     }
-
-    void setExternalAwssdk(bool overrideAwssdkInitializedValue) {
-
-    }
 }

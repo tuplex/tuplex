@@ -31,7 +31,7 @@ import iso8601
 import psutil
 import yaml
 
-from .dllist import dllist
+from tuplex.utils.dllist import dllist
 
 try:
     import pwd

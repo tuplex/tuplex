@@ -1081,12 +1081,11 @@ def ensure_webui(options: dict) -> None:
             log_gunicorn_errors(gunicorn_logpath)
 
 
-def pyarrow_aws_sdk_cpp_fix() -> None:
+def pyarrow_aws_sdk_cpp_check() -> None:
     """Help fix issue of pyarrow (frequent because pyarrow seems to be shipped very often)
     Call this function BEFORE initializing the _Context object from the tuplex C extension object."""
-    # PyArrow always initializes AWS SDK. Because Tuplex may initialize it as well,
-    # skip in the presence of the arrow lib being loaded
-    # the AWS SDK initialization on macos. It doesn't seem to be a problem on linux.
+    # Newer PyArrow versions use a more recent version of the AWS SDK, which leads to pyarrow crashing
+    # other libraries under macOS. Warn here explicitly about this to avoid a segfault, and provide error.
 
     if os.name == "posix" and sys.platform == "darwin":
         loaded_shared_objects = dllist()

@@ -11,7 +11,7 @@
 
 import logging
 
-from .utils.common import pyarrow_aws_sdk_cpp_fix
+from .utils.common import pyarrow_aws_sdk_cpp_check
 
 try:
     from .libexec.tuplex import _Context, getDefaultOptionsAsJSON
@@ -234,7 +234,7 @@ class Context:
             del options["webui"]
 
         # Ensure no crash due to PyArrow potentially being present.
-        pyarrow_aws_sdk_cpp_fix()
+        pyarrow_aws_sdk_cpp_check()
 
         # last arg are the options as json string serialized b.c. of boost python problems
         self._context = _Context(name, runtime_path, json.dumps(options))

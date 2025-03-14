@@ -1093,7 +1093,18 @@ def pyarrow_aws_sdk_cpp_fix() -> None:
         pyarrow_loaded = any("pyarrow/lib" in path for path in loaded_shared_objects)
 
         if pyarrow_loaded:
-            from tuplex.libexec.tuplex import setExternalAwssdk
+            import pyarrow as pa
 
-            # Calling this function will prevent Tuplex from calling initAWSSDK and shutdownAWSSDK.
-            setExternalAwssdk(True)
+            pyarrow_version = [int(v) for v in pa.__version__.split(".")]
+
+            # PyArrow has since v13+ a bug with crashes other libraries due to bad use of AWS SDK.
+            # cf. https://github.com/aws/aws-sdk-cpp/issues/2699 which has been merged,
+            # but whose solution has not been reflected in pyarrow yet.
+            # Display to user actionable usage on what to do.
+            if pyarrow_version[0] >= 13:
+                raise RuntimeError(
+                    "PyArrow {pa.__version__} present in process and loaded or imported before tuplex."
+                    " If you need to import/load pyarrow first, only compatible with pyarrow versions < 13.0.0."
+                    " If you must use pyarrow >= 13.0.0, import tuplex first and then load pyarrow. "
+                    "Note that pyarrow < 13.0.0 is not compatible with numpy >= 2.0."
+                )

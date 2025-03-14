@@ -39,6 +39,24 @@ PYMODULE {
     m.attr("__version__") = "dev";
 #endif
 
+    // Perform cleanup (e.g., AWS SDK shutdown if necessary to await endless loop)
+    // Register a callback function that is invoked when the BaseClass object is collected
+    // cf. https://pybind11.readthedocs.io/en/stable/advanced/misc.html
+    auto cleanup_callback = []() {
+        // perform cleanup here -- this function is called with the GIL held
+        // std::cout<<"Pybind11 clean up call here."<<std::endl;
+
+        // When using AWS SDK, important to explicitly call sdk shutdown. AWS SDK creates a threadpool,
+        // if shutdown is not issued an endless loop will occur at shutdown due to the SDK waiting on mutexes.
+#ifdef BUILD_WITH_AWS
+        // std::cout<<"Shutting down AWS SDK."<<std::endl;
+        tuplex::shutdownAWS();
+        // std::cout<<"AWS cleanup done."<<std::endl;
+#endif
+    };
+
+    m.add_object("_cleanup", py::capsule(cleanup_callback));
+
     // Note: before constructing any object - call registerWithInterpreter to setup GIL properly!
 
     py::class_<tuplex::PythonDataSet>(m, "_DataSet")
@@ -94,4 +112,8 @@ PYMODULE {
     m.def("registerLoggingCallback", &tuplex::registerPythonLoggingCallback);
 
     m.def("registerWithInterpreter", &python::registerWithInterpreter);
+
+    m.def("getPythonVersion", &tuplex::getPythonVersion);
+
+    m.def("setExternalAwssdk", &tuplex::setExternalAwssdk);
 }

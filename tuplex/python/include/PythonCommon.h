@@ -154,6 +154,19 @@ namespace tuplex {
 
         return py::cast<py::list>(listObj);
     }
+
+    extern py::object getPythonVersion();
+
+#ifndef BUILD_WITH_AWS
+    // if not building with aws, define dummy function, else this function lives in AWSCommon.h/cc
+    /*!
+     * Use this function to suggest to Tuplex the state of the AWS SDK, e.g. if in the process the
+     * Aws sdk is already initialized in some form.
+     * @param overrideAwssdkInitializedValue
+     */
+    [[nodiscard]] inline void setExternalAwssdk(bool overrideAwssdkInitializedValue) {
+    }
+#endif
 }
 
 #endif //TUPLEX_PYTHONCOMMON_H

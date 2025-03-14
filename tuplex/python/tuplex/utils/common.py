@@ -31,6 +31,8 @@ import iso8601
 import psutil
 import yaml
 
+from tuplex.utils.dllist import dllist
+
 try:
     import pwd
 except ImportError:
@@ -1077,3 +1079,31 @@ def ensure_webui(options: dict) -> None:
         # log gunicorn errors for local startup
         if os.path.isfile(gunicorn_logpath) and "localhost" == webui_url:
             log_gunicorn_errors(gunicorn_logpath)
+
+
+def pyarrow_aws_sdk_cpp_check() -> None:
+    """Help fix issue of pyarrow (frequent because pyarrow seems to be shipped very often)
+    Call this function BEFORE initializing the _Context object from the tuplex C extension object."""
+    # Newer PyArrow versions use a more recent version of the AWS SDK, which leads to pyarrow crashing
+    # other libraries under macOS. Warn here explicitly about this to avoid a segfault, and provide error.
+
+    if os.name == "posix" and sys.platform == "darwin":
+        loaded_shared_objects = dllist()
+        pyarrow_loaded = any("pyarrow/lib" in path for path in loaded_shared_objects)
+
+        if pyarrow_loaded:
+            import pyarrow as pa
+
+            pyarrow_version = [int(v) for v in pa.__version__.split(".")]
+
+            # PyArrow has since v13+ a bug with crashes other libraries due to bad use of AWS SDK.
+            # cf. https://github.com/aws/aws-sdk-cpp/issues/2699 which has been merged,
+            # but whose solution has not been reflected in pyarrow yet.
+            # Display to user actionable usage on what to do.
+            if pyarrow_version[0] >= 13:
+                raise RuntimeError(
+                    "PyArrow {pa.__version__} present in process and loaded or imported before tuplex."
+                    " If you need to import/load pyarrow first, only compatible with pyarrow versions < 13.0.0."
+                    " If you must use pyarrow >= 13.0.0, import tuplex first and then load pyarrow. "
+                    "Note that pyarrow < 13.0.0 is not compatible with numpy >= 2.0."
+                )

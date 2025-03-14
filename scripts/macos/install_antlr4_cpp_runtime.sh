@@ -58,6 +58,6 @@ git clone https://github.com/antlr/antlr4.git \
 ls -l $PREFIX/include
 ls -l $PREFIX/lib
 
-cp lib/libantlr4-runtime.dylib /Users/runner/work/tuplex/tuplex/libantlr4-runtime.dylib
+cp $PREFIX/lib/libantlr4-runtime.dylib /Users/runner/work/tuplex/tuplex/libantlr4-runtime.dylib || echo "cp failed."
 
 exit 0

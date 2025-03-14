@@ -33,6 +33,12 @@ static std::string throw_if_missing_envvar(const std::string &name) {
 static bool isAWSInitialized = false;
 static Aws::SDKOptions aws_options;
 
+namespace tuplex {
+    void setExternalAwssdk(bool overrideAwssdkInitializedValue) {
+        isAWSInitialized = overrideAwssdkInitializedValue;
+    }
+}
+
 // for Lambda, check: https://docs.aws.amazon.com/code-samples/latest/catalog/cpp-lambda-lambda_example.cpp.html
 
 // https://sdk.amazonaws.com/cpp/api/LATEST/class_aws_1_1_utils_1_1_logging_1_1_formatted_log_system.html

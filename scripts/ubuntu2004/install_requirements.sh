@@ -137,7 +137,7 @@ mkdir -p ${WORKDIR}/protobuf && cd ${WORKDIR}/protobuf && git clone -b v24.3 htt
 echo ">> Installing AWS SDK"
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
-&& cd aws-sdk-cpp && git checkout tags/1.11.164 && mkdir build && cd build \
+&& cd aws-sdk-cpp && git checkout tags/1.11.524 && mkdir build && cd build \
 && cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) \
 && make install

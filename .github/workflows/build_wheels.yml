@@ -119,7 +119,7 @@ jobs:
           CIBW_BUILD: ${{ matrix.cibw-build }}
 
           # macOS dependencies separate, for Linux use docker tuplex/ci:3.x images.
-          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
+          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
 
           # If CI complains about missing /usr/local/libexec/git-core/git-remote-https: error while loading shared libraries: libssl.so.3: cannot open shared object file: No such file or directory
           # the OpenSSL3 lib is stored under /usr/local/lib64.

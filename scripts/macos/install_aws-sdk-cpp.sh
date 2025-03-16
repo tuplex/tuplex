@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 PREFIX=${PREFIX:-/usr/local}
-AWSSDK_CPP_VERSION=1.11.164
+AWSSDK_CPP_VERSION=1.11.524 # need at least 1.11.267 because of pyarrow bugs...
 
 # check if dir exists (i.e. restored from cache, then skip)
 if [ -d "${PREFIX}/include/aws" ]; then

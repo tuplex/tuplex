@@ -20,6 +20,14 @@ backward::SignalHandling sh;
 #endif
 
 namespace tuplex {
+
+    py::object getPythonVersion() {
+        std::stringstream ss;
+        ss<<PY_VERSION<<" ("<<PY_VERSION_HEX<<")";
+        auto version_string = ss.str();
+        return py::str(version_string);
+    }
+
     py::object registerPythonLoggingCallback(py::object callback_functor) {
         python::registerWithInterpreter();
 

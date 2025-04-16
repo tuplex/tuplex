@@ -12,10 +12,11 @@
 import unittest
 import pytest
 from tuplex import Context
-from random import randint, sample, shuffle
+from random import randint, sample, shuffle, seed
 from math import floor
 from helper import options_for_pytest
 
+seed(42)
 
 class TestExceptions:
 

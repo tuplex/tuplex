@@ -4,7 +4,7 @@ on: [push, pull_request, workflow_dispatch]
 
 # For macos, at least 10.13 is required
 # to avoid issues and since the runners are macos-13 and macos-14:
-#   -> use 13.0, which is Venture from 2022 and 14.0 on the arm runners.
+#   -> use 13.6, which is Venture from 2022 and 14.0 on the arm runners.
 
 jobs:
   build_wheels:
@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         # macos-14 (which is macos-latest) is ARM only. macos-13 is the latest intel runner.
+        # libunwind from brew has 13.6 as requirement right now, update the 13 runners accordingly.
         os: [ ubuntu-latest, macos-13, macos-14 ]
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         include:
@@ -34,27 +35,27 @@ jobs:
           - os: macos-13
             python-version: "3.9"
             cibw-build: "cp39-macosx_x86_64"
-            macos-target: "13.0"
+            macos-target: "13.6"
             arch: "x86_64"
           - os: macos-13
             python-version: "3.10"
             cibw-build: "cp310-macosx_x86_64"
-            macos-target: "13.0"
+            macos-target: "13.6"
             arch: "x86_64"
           - os: macos-13
             python-version: "3.11"
             cibw-build: "cp311-macosx_x86_64"
-            macos-target: "13.0"
+            macos-target: "13.6"
             arch: "x86_64"
           - os: macos-13
             python-version: "3.12"
             cibw-build: "cp312-macosx_x86_64"
-            macos-target: "13.0"
+            macos-target: "13.6"
             arch: "x86_64"
           - os: macos-13
             python-version: "3.13"
             cibw-build: "cp313-macosx_x86_64"
-            macos-target: "13.0"
+            macos-target: "13.6"
             arch: "x86_64"
           - os: macos-14
             python-version: "3.9"
@@ -126,7 +127,7 @@ jobs:
           CIBW_ENVIRONMENT_LINUX: "CMAKE_ARGS='-DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:/opt/lib"
 
           # Requires macOS 10.13 at least to build because of C++17 features.
-          # To avoid issues, simply use 13.0 for now.
+          # To avoid issues, simply use 13.6 for now.
           # Fix for Java home from https://github.com/actions/runner-images/discussions/9266.
           # For github actions, $HOME is /Users/runner/
           CIBW_ENVIRONMENT_MACOS: "ARCH=${{ matrix.arch }} PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos-target }} CMAKE_ARGS='-DCMAKE_PREFIX_PATH=/Users/runner/.local -DCMAKE_MODULE_PATH=/Users/runner/.local/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"

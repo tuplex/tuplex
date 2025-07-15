@@ -105,8 +105,7 @@ if(BUILD_WITH_ORC)
                             "${CMAKE_CURRENT_BINARY_DIR}/lz4_ep-prefix/src/lz4_ep/contrib/cmake_unofficial")
                 endif()
 
-                ExternalProject_Add (lz4_ep
-                        URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"s
+                ExternalProject_Add (lz4_ep URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"s
                         ${LZ4_CONFIGURE}
                         BUILD_BYPRODUCTS "${LZ4_STATIC_LIB}")
 

@@ -10,7 +10,20 @@
 
 #include <iostream>
 #include <Pipe.h>
+
+#include <boost/version.hpp>
+#define BOOST_PROCESS_VERSION 1
+#if BOOST_VERSION < 108800
 #include <boost/process.hpp>
+namespace bp_process = boost::process;
+#else
+#include <boost/process/v1/child.hpp>
+#include <boost/process/v1/io.hpp>
+#include <boost/process/v1/pipe.hpp>
+#include <boost/process/v1/search_path.hpp>
+namespace bp_process = boost::process::v1;
+#endif
+
 #include <boost/algorithm/string.hpp>
 #include <Logger.h>
 #include <fstream>
@@ -20,7 +33,7 @@ int Pipe::pipe(const std::string& file_input, const std::string& tmpdir) {
 
     try {
 
-        using namespace boost::process;
+        using namespace bp_process;
 
         ipstream pipe_stdout;
         ipstream pipe_stderr;

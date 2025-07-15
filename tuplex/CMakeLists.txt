@@ -849,7 +849,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 
 # external libs to build / download
 set(ZLIB_VERSION "1.2.11") # which zlib version to use
-set(ZSTD_VERSION "1.5.5") # which zstd version to use
+set(ZSTD_VERSION "1.5.7") # which zstd version to use
 set(BUILD_AND_DOWNLOAD_ZLIB True)
 set(BUILD_AND_DOWNLOAD_ZSTD True)
 

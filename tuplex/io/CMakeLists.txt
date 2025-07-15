@@ -240,6 +240,11 @@ add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
 
+# Make sure orc is built if libio is requested.
+if(BUILD_WITH_ORC)
+    add_dependencies(libio liborc)
+endif()
+
 target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR}
         ${LibMagic_INCLUDE_DIR}

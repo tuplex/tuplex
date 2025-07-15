@@ -201,7 +201,7 @@ if(BUILD_WITH_ORC)
 
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-1.9.2
+            GIT_TAG rel/release-2.1.3
             TIMEOUT 5
             CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME}
             -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME}

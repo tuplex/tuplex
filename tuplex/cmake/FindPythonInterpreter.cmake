@@ -4,7 +4,7 @@
 # source tree.
 # from https://github.com/Krzmbrzl/FindPythonInterpreter/blob/main/FindPythonInterpreter.cmake
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.20)
 
 function(find_python_interpreter)
     set(options REQUIRED EXACT)

@@ -85,22 +85,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache brew dependencies
-        if: runner.os == 'macOS'
-        uses: actions/cache@v4.2.1
-        with:
-          # Paths to cache:
-          # /usr/local/Homebrew - installation folder of Homebrew
-          # /usr/local/Cellar - installation folder of Homebrew formulae
-          # /usr/local/Frameworks, /usr/local/bin, /usr/local/opt - contain (links to) binaries installed by Homebrew formulae
-          path: |
-            /usr/local/Homebrew
-            /usr/local/Cellar
-            /usr/local/Frameworks
-            /usr/local/bin
-            /usr/local/opt
-          # macos13 runners are x86, macos14 are arm. --> use os therefore as cache key.
-          key: ${{ matrix.os }}-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+      # disable cache for now.
+      #- name: Cache brew dependencies
+      #  if: runner.os == 'macOS'
+      #  uses: actions/cache@v4.2.1
+      #  with:
+      #    # Paths to cache:
+      #    # /usr/local/Homebrew - installation folder of Homebrew
+      #    # /usr/local/Cellar - installation folder of Homebrew formulae
+      #    # /usr/local/Frameworks, /usr/local/bin, /usr/local/opt - contain (links to) binaries installed by Homebrew formulae
+      #    path: |
+      #      /usr/local/Homebrew
+      #      /usr/local/Cellar
+      #      /usr/local/Frameworks
+      #      /usr/local/bin
+      #      /usr/local/opt
+      #    # macos13 runners are x86, macos14 are arm. --> use os therefore as cache key.
+      #    key: ${{ matrix.os }}-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
 
       - name: Setup python
         uses: actions/setup-python@v5

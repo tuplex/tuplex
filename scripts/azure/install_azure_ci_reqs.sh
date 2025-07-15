@@ -18,6 +18,9 @@ export DEBIAN_FRONTEND=noninteractive
 PREFIX=${PREFIX:-/opt}
 WORKDIR=${WORKDIR:-/tmp}
 
+export CXXFLAGS="-fPIC"
+export CFLAGS="-fPIC"
+
 echo ">> Installing packages into ${PREFIX}"
 mkdir -p $PREFIX && chmod 0755 $PREFIX
 mkdir -p $PREFIX/sbin
@@ -115,7 +118,7 @@ mkdir -p ${WORKDIR}/antlr && cd ${WORKDIR}/antlr \
 mkdir -p ${WORKDIR}/aws && cd ${WORKDIR}/aws \
 &&  git clone --recurse-submodules https://github.com/aws/aws-sdk-cpp.git \
 && cd aws-sdk-cpp && git checkout tags/1.11.524 && mkdir build && cd build \
-&& cmake -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
+&& cmake -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_BUILD_TYPE=Release -DUSE_OPENSSL=ON -DENABLE_TESTING=OFF -DENABLE_UNITY_BUILD=ON -DCPP_STANDARD=17 -DBUILD_SHARED_LIBS=OFF -DBUILD_ONLY="s3;core;lambda;transfer" -DCMAKE_INSTALL_PREFIX=${PREFIX} .. \
 && make -j$(nproc) \
 && make install
 

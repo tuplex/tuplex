@@ -16,6 +16,9 @@ message(STATUS "Found LibMagic ${LibMagic_INCLUDE_DIR}, ${LibMagic_LIBRARIES}")
 include_directories("include")
 include_directories(${Boost_INCLUDE_DIR})
 
+# Check what lib suffix is.
+include(GNUInstallDirs)
+message(STATUS "GNUInstallDIrs lib dir (should be lib/lib64): ${CMAKE_INSTALL_LIBDIR}")
 
 # Install and build ORC C++ APIs when BUILD_WITH_ORC is active
 if(BUILD_WITH_ORC)
@@ -32,22 +35,27 @@ if(BUILD_WITH_ORC)
             EXECUTE_PROCESS(COMMAND brew list snappy OUTPUT_VARIABLE BREW_SNAPPY_LIST ERROR_VARIABLE BREW_SNAPPY_NOTFOUND OUTPUT_STRIP_TRAILING_WHITESPACE)
             if(BREW_SNAPPY_NOTFOUND)
                 message(STATUS "Could not find locally installed snappy, building third party")
-                set(SNAPPY_VERSION "1.1.10")
                 set(SNAPPY_HOME "${EXTERNAL_INSTALL_LOCATION}")
                 set(SNAPPY_INCLUDE_DIR "${SNAPPY_HOME}/include")
                 set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
                 set(SNAPPY_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${SNAPPY_HOME}
                         -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_LIBDIR=lib -DSNAPPY_BUILD_BENCHMARKS=OFF -DSNAPPY_BUILD_TESTS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 
-                # cf. https://gitlab.kitware.com/cmake/cmake/-/issues/17287
-                set(PATCH_CMD_FOR_SNAPPY bash -c "patch -p1 < \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\"")
-                # To show what the patch looks like, use:
-                # set(PATCH_CMD_FOR_SNAPPY cat "${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff")
-                
+                # Snappy 1.10 patch.
+                # # cf. https://gitlab.kitware.com/cmake/cmake/-/issues/17287
+                # set(PATCH_CMD_FOR_SNAPPY bash -c "patch -p1 < \"${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff\"")
+                # # To show what the patch looks like, use:
+                # # set(PATCH_CMD_FOR_SNAPPY cat "${CMAKE_CURRENT_LIST_DIR}/patches/snappy.diff")
+                #
+                # ExternalProject_Add (snappy_ep
+                #         URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
+                #         CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
+                #         PATCH_COMMAND ${PATCH_CMD_FOR_SNAPPY}
+                #         BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}")
+
                 ExternalProject_Add (snappy_ep
                         URL "https://github.com/google/snappy/archive/${SNAPPY_VERSION}.tar.gz"
                         CMAKE_ARGS ${SNAPPY_CMAKE_ARGS}
-                        PATCH_COMMAND ${PATCH_CMD_FOR_SNAPPY}
                         BUILD_BYPRODUCTS "${SNAPPY_STATIC_LIB}")
 
                 set(SNAPPY_LIBRARIES ${SNAPPY_STATIC_LIB})
@@ -101,8 +109,7 @@ if(BUILD_WITH_ORC)
                             "${CMAKE_CURRENT_BINARY_DIR}/lz4_ep-prefix/src/lz4_ep/contrib/cmake_unofficial")
                 endif()
 
-                ExternalProject_Add (lz4_ep
-                        URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"
+                ExternalProject_Add (lz4_ep URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"s
                         ${LZ4_CONFIGURE}
                         BUILD_BYPRODUCTS "${LZ4_STATIC_LIB}")
 
@@ -146,7 +153,7 @@ if(BUILD_WITH_ORC)
     endif()
 
     if (NOT APPLE)
-        set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/lib/liblz4.a)
+        set(LZ4_LIBRARIES ${EXTERNAL_INSTALL_LOCATION}/${CMAKE_INSTALL_LIBDIR}/liblz4.a)
         set(ORC_THIRD_PARTY_LIBS
             ${SNAPPY_LIBRARIES}
             ${LZ4_LIBRARIES})
@@ -175,7 +182,6 @@ if(BUILD_WITH_ORC)
             set(SNAPPY_LIBRARIES ${Snappy_LIBRARIES})
         else()
             message(STATUS "Could not find locally installed snappy, building third party")
-            set(SNAPPY_VERSION "1.1.10")
             set(SNAPPY_HOME "${EXTERNAL_INSTALL_LOCATION}")
             set(SNAPPY_INCLUDE_DIR "${SNAPPY_HOME}/include")
             set(SNAPPY_STATIC_LIB "${SNAPPY_HOME}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}snappy${CMAKE_STATIC_LIBRARY_SUFFIX}")
@@ -199,9 +205,12 @@ if(BUILD_WITH_ORC)
         endif()
     endif()
 
+    # Search for orc library, can be in lib/ or lib64 depending on platform / GnuInstall
+    set(orc_LIBRARY ${EXTERNAL_INSTALL_LOCATION}/${CMAKE_INSTALL_LIBDIR}/liborc.a)
+
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-1.9.2
+            GIT_TAG rel/release-2.1.3
             TIMEOUT 5
             CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME}
             -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME}
@@ -211,14 +220,13 @@ if(BUILD_WITH_ORC)
             -DBUILD_POSITION_INDEPENDENT_LIB=ON -DPROTOBUF_HOME=${Protobuf_HOME}
             PREFIX "${EXTERNAL_INSTALL_LOCATION}"
             UPDATE_COMMAND "" # Disable update step: clones the project only once
-            BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a ${ORC_THIRD_PARTY_LIBS}
+            BUILD_BYPRODUCTS ${orc_LIBRARY} ${ORC_THIRD_PARTY_LIBS}
             )
     ExternalProject_Add_StepDependencies(orc build ${SNAPPY_DEPENDS} ${LZ4_DEPENDS}
             ${ZSTD_DEPENDS}
             )
     set(orc_INCLUDE_DIR ${EXTERNAL_INSTALL_LOCATION}/include)
     ExternalProject_Get_Property(orc binary_dir)
-    set(orc_LIBRARY ${EXTERNAL_INSTALL_LOCATION}/lib/liborc.a)
 
     add_library(liborc STATIC IMPORTED)
     target_link_libraries(liborc INTERFACE ${SNAPPY_LIBRARIES} ${LZ4_LIBRARIES})
@@ -237,6 +245,11 @@ endif()
 add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})
 set_target_properties(libio PROPERTIES PREFIX "")
+
+# Make sure orc is built if libio is requested.
+if(BUILD_WITH_ORC)
+    add_dependencies(libio liborc)
+endif()
 
 target_include_directories(libio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR} ${Boost_INCLUDE_DIR}

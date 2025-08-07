@@ -68,3 +68,8 @@ WORKDIR /code
 
 # Clone tuplex, and build initial version as well as install in python.
 RUN git clone -b ${GITHUB_BRANCH} --single-branch https://github.com/tuplex/tuplex.git
+
+# Install python dependencies
+RUN python3 -m pip install cloudpickle numpy pandas
+
+#

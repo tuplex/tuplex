@@ -130,7 +130,7 @@ echo ">> Installing apt dependencies"
 apt update -y
 
 apt-get install -y apt-utils dh-autoreconf libmagic-dev curl libxml2-dev vim build-essential libssl-dev zlib1g-dev libncurses5-dev \
-libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev openssh-client \
+libncursesw5-dev libreadline-dev libsqlite3-dev libgdbm-dev libdb5.3-dev openssh-client unzip \
 libbz2-dev libexpat1-dev liblzma-dev tk-dev libffi-dev wget git libcurl4-openssl-dev python3-dev python3-pip openjdk-11-jdk ninja-build
 
 ldconfig

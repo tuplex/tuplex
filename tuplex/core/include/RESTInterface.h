@@ -13,6 +13,7 @@
 
 #include <curl/curl.h>
 #include <cstdlib>
+#include <cstdint>
 #include <string>
 #include <functional>
 

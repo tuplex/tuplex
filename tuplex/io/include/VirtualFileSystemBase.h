@@ -11,6 +11,8 @@
 #ifndef TUPLEX_VIRTUALFILESYSTEMBASE_H
 #define TUPLEX_VIRTUALFILESYSTEMBASE_H
 
+#include <cstdint>
+
 namespace tuplex {
     enum class VirtualFileSystemStatus {
         VFS_OK = 0,

@@ -124,7 +124,7 @@ mkdir -p $WORKDIR
 PYTHON_BASENAME="$(basename -- $PYTHON_EXECUTABLE)"
 PYTHON_VERSION=$(${PYTHON_EXECUTABLE} --version)
 echo ">> Building dependencies for ${PYTHON_VERSION}"
-echo ">> Installing all build dependencies for Tuplex under Ubuntu 22.04"
+echo ">> Installing all build dependencies for Tuplex under Ubuntu 24.04"
 
 echo ">> Installing apt dependencies"
 apt update -y

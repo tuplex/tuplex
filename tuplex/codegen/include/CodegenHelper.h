@@ -763,7 +763,13 @@ namespace tuplex {
                 llvm::Instruction& inst = *firstBlock.getFirstInsertionPt();
                 ctorBuilder.SetInsertPoint(&inst);
             }
+
+            // llvm IR builder has some issues with copy disallowed. C++ compilers will issue -Wreturn-local-addr.
+            // Disable warning here.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-local-addr"
             return std::move(ctorBuilder);
+#pragma GCC diagnostic pop
         }
 
         // in order to serialize/deserialize data properly and deal with

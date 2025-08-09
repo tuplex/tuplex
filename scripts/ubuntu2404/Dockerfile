@@ -72,4 +72,11 @@ RUN git clone -b ${GITHUB_BRANCH} --single-branch https://github.com/tuplex/tupl
 # Install python dependencies
 RUN python3 -m pip install cloudpickle numpy pandas
 
-#
+# Add paths to compile,
+RUN echo "export PATH=/opt/bin:${PATH}" >> /root/.bashrc
+RUN echo "export LLVM_ROOT=/opt/llvm-16.0.6" >> /root/.bashrc
+
+# Within the docker container, compile tuplex with
+# cd /code/tuplex/tuplex && mkdir -p build && cd build && cmake -DLLVM_ROOT=/opt/llvm-16.0.6/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON .. && make
+# You can test via ctest
+# or follow instructions to test the python package.

@@ -12,6 +12,7 @@
 #define TUPLEX_FIELD_H
 
 #include <tuple>
+#include <cstdint>
 #include <TypeSystem.h>
 #include <Tuple.h>
 #include <List.h>

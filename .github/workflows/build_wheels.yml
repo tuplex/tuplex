@@ -2,6 +2,11 @@ name: Build
 
 on: [push, pull_request, workflow_dispatch]
 
+# Cancel previous runs, i.e. run only latest push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # For macos, at least 10.13 is required
 # to avoid issues and since the runners are macos-13 and macos-14:
 #   -> use 13.6, which is Venture from 2022 and 14.0 on the arm runners.

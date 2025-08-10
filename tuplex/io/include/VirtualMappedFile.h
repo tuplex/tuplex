@@ -11,6 +11,9 @@
 #ifndef TUPLEX_VIRTUALMAPPEDFILE_H
 #define TUPLEX_VIRTUALMAPPEDFILE_H
 
+#include <cstdint>
+#include <URI.h>
+
 namespace tuplex {
     class VirtualMappedFile;
     class VirtualFileSystem;

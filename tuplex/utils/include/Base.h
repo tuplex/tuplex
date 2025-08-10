@@ -13,6 +13,7 @@
 
 #include <string>
 #include <cstring>
+#include <cstdint>
 #include <unordered_set>
 #include <algorithm>
 

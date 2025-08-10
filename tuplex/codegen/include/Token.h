@@ -13,6 +13,7 @@
 
 #include <TokenType.h>
 #include <string>
+#include <cstdint>
 #include <unordered_map>
 #include <iostream>
 #include <TypeSystem.h>

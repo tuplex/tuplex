@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # This is a script to install the antlr4 runtime.
 
-set -euxo pipefail
+set -euo pipefail
 
 # Specify here target location.
 PREFIX=${PREFIX:-/usr/local}

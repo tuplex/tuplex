@@ -21,4 +21,4 @@ target_link_libraries(testcore
         ${CURSES_LIBRARY}
         ${LLVM_LIBRARIES})
 
-gtest_add_tests(TARGET testcore TEST_PREFIX "")
+gtest_add_tests(TARGET testcore)

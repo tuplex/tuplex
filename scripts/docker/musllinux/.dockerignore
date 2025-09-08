@@ -1,0 +1,41 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+
+# Test files
+test_*.sh
+
+# Original monolithic script (no longer needed)
+install_requirements.sh
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+.dockerignore
+
+# Build artifacts and temporary files
+build/
+*.o
+*.so
+*.a
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

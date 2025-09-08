@@ -23,4 +23,4 @@ TARGET_LINK_LIBRARIES(testcodegen
         runtime
         )
 
-gtest_add_tests(TARGET testcodegen TEST_PREFIX "")
+gtest_add_tests(TARGET testcodegen)

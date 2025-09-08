@@ -2,7 +2,6 @@
 # (c) 2017 - 2023 L.Spiegelberg, R. Yesantharao
 
 FROM ubuntu:20.04
-MAINTAINER Leonhard Spiegelberg "leonhard_spiegelberg@brown.edu"
 
 # Use /tmp folder to build everything...
 ENV DEBIAN_FRONTEND=noninteractive

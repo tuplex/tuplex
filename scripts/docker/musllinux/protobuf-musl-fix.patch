@@ -1,0 +1,19 @@
+diff --git a/third_party/abseil-cpp/absl/base/internal/direct_mmap.h b/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
+index 1234567..abcdefg 100644
+--- a/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
++++ b/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
+@@ -23,6 +23,14 @@
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++// Fix for musl libc compatibility - off64_t is not defined
++#if defined(__MUSL__) || !defined(_LARGEFILE64_SOURCE)
++#ifndef off64_t
++#define off64_t off_t
++#endif
++#endif
++
++
+ namespace absl {
+ ABSL_NAMESPACE_BEGIN
+ namespace base_internal {

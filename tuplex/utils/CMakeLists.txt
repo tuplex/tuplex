@@ -10,9 +10,12 @@ include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-        GIT_TAG 6.2.0
+        GIT_TAG 11.2.0
         GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
+        PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/fmtlib.diff ${CMAKE_BINARY_DIR}/fmtlib-patch.diff &&
+                        cd ${CMAKE_BINARY_DIR}/third_party/src/fmt &&
+                        patch -p1 < ${CMAKE_BINARY_DIR}/fmtlib-patch.diff
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
         PREFIX "${EXTERNAL_INSTALL_LOCATION}"
         CONFIGURE_COMMAND "" # Disable configure step
@@ -27,7 +30,7 @@ set(fmt_INCLUDE_DIR ${source_dir}/include)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/third_party)
 ExternalProject_Add(spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.3.1
+        GIT_TAG v1.15.3
         GIT_CONFIG advice.detachedHead=false
         TIMEOUT 5
         CMAKE_ARGS -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} #-DSPDLOG_BUILD_BENCH=OFF
@@ -52,13 +55,10 @@ if(NOT BUILD_WITH_AWS)
         GIT_TAG        v1.7.14
         GIT_CONFIG advice.detachedHead=false
     )
-    FetchContent_GetProperties(cJSON)
-    if(NOT cjson_Populated)
-        FetchContent_Populate(cJSON)
-        message(STATUS "cJSON Source Dir: ${cjson_SOURCE_DIR}")
-        message(STATUS "cJSON Binary Dir: ${cjson_BINARY_DIR}")
+    FetchContent_MakeAvailable(cJSON)
+    message(STATUS "cJSON Source Dir: ${cjson_SOURCE_DIR}")
+    message(STATUS "cJSON Binary Dir: ${cjson_BINARY_DIR}")
     #    add_subdirectory(${cjson_SOURCE_DIR} ${cjson_BINARY_DIR})
-    endif()
 else()
     message(STATUS "Using cJSON shipped with AWSSDK")
     # Note: alternative is to use CJSON_HIDE_SYMBOLS IWTH AWS SDK.
@@ -106,4 +106,4 @@ target_include_directories(libutils PUBLIC
         ${AWSSDK_INCLUDE_DIR})
 
 # Specify here the libraries this program depends on
-target_link_libraries(libutils Boost::filesystem Boost::thread Boost::system Boost::system Boost::iostreams ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(libutils Boost::filesystem Boost::thread Boost::iostreams ${AWSSDK_LINK_LIBRARIES})

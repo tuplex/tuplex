@@ -12,21 +12,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(MODULE_NAME tuplex)
 
 # deprecated
-include(FetchContent)
 #set(PYBIND11_NOPYTHON ON CACHE INTERNAL "") 
 message(STATUS "Pybind11 uses python version ${Python3_VERSION}")
 set(PYBIND11_FINDPYTHON OFF CACHE INTERNAL "") 
 set(PYBIND11_PYTHON_VERSION "${Python3_VERSION}" CACHE INTERNAL "")
-FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
-                             GIT_TAG        v2.13.6)
-FetchContent_GetProperties(pybind11)
-if(NOT pybind11_POPULATED)
-    FetchContent_Populate(pybind11)
-    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+
+# 3.0.0 requires python 3.10+, 2.13.6 supports python 3.9.
+if(Python3_VERSION VERSION_LESS "3.10")
+    set(pybind11_version v2.13.6)
+else()
+    set(pybind11_version v3.0.1)
 endif()
 
-# Source code & linking
-file(GLOB_RECURSE SOURCES src/*.cc)
+FetchContent_Declare(pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11
+                             GIT_TAG        ${pybind11_version})
+FetchContent_GetProperties(pybind11)
+if(NOT pybind11_POPULATED)
+    # Disable cmake warning, need to update to FetchContent_MakeAvailable eventually.
+    cmake_policy(SET CMP0169 OLD)
+    FetchContent_Populate(pybind11)
+    cmake_policy(SET CMP0169 NEW)
+    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+endif()
 
 # this is the syntax for the old deprecated packages, switching out to newer one.
 #PYTHON_ADD_MODULE(${MODULE_NAME} ${SOURCES})
@@ -53,11 +60,93 @@ message(STATUS "includes: ${Python3_INCLUDE_DIRS}")
 #include(${pybind11_SOURCE_DIR}/tools/pybind11Tools.cmake)
 #include(${pybind11_SOURCE_DIR}/tools/pybind11NewTools.cmake)
 
-
+# Method 1:
 # cf. https://pybind11.readthedocs.io/en/stable/cmake/index.html
 pybind11_add_module(${MODULE_NAME} ${SOURCES})
 set(PYMODULE "PYBIND11_MODULE(${MODULE_NAME}, m)")
 target_compile_definitions(${MODULE_NAME} PRIVATE PYMODULE=${PYMODULE})
+
+# Macro/function to detect musl libc or Alpine Linux
+function(detect_musl OUT_VAR)
+    include(CheckCXXSourceCompiles)
+    set(_musl_detected OFF)
+
+    # Method 1: Check for musl-specific functions that don't exist in glibc
+    check_cxx_source_compiles("
+        #include <stdio.h>
+        #include <stdlib.h>
+        int main() {
+            // musl has __progname, glibc doesn't
+            extern char *__progname;
+            return 0;
+        }
+    " _musl_progname_detected)
+
+    if(_musl_progname_detected)
+        set(_musl_detected ON)
+    else()
+        # Method 2: Check for musl-specific header behavior
+        check_cxx_source_compiles("
+            #include <sys/types.h>
+            #include <sys/socket.h>
+            int main() {
+                // musl defines MSG_NOSIGNAL, glibc doesn't always
+                int flag = MSG_NOSIGNAL;
+                return 0;
+            }
+        " _musl_socket_detected)
+
+        if(_musl_socket_detected)
+            set(_musl_detected ON)
+        else()
+            # Method 3: Check for Alpine Linux specific behavior
+            check_cxx_source_compiles("
+                #include <features.h>
+                int main() {
+                    // Check if we're on Alpine/musl by looking for specific defines
+                    #ifdef __GLIBC__
+                    #error glibc detected
+                    #endif
+                    return 0;
+                }
+            " _musl_features_detected)
+
+            if(_musl_features_detected)
+                set(_musl_detected ON)
+            endif()
+        endif()
+    endif()
+
+    if(APPLE)
+        set(_musl_detected OFF)
+    endif()
+
+    set(${OUT_VAR} ${_musl_detected} PARENT_SCOPE)
+endfunction()
+
+# Detect whether muslc is being used.
+detect_musl(MUSL_DETECTED)
+
+if(MUSL_DETECTED)
+    message(STATUS "muslc detected, adjusting linker flags")
+
+    # # Option 1:
+    # # There's something going wrong on Alpine, all the symbols get optimized away. Therefore manually disable for target.
+    # message(STATUS "Detected musl libc or Alpine Linux, disabling interprocedural optimization for ${MODULE_NAME}")
+    # set_target_properties(${MODULE_NAME} PROPERTIES
+    #         INTERPROCEDURAL_OPTIMIZATION OFF
+    #         CXX_VISIBILITY_PRESET hidden
+    #         VISIBILITY_INLINES_HIDDEN ON)
+
+    # Option 2:
+    # Pass the right linker flags for Alpine. In addition, need to have a list of symbols to preserve as
+    # they need to be present when using the C-extension module.
+    target_link_options(${MODULE_NAME} PRIVATE
+            "-Wl,--export-dynamic"
+            "-Wl,--retain-symbols-file=${CMAKE_CURRENT_SOURCE_DIR}/preserve_symbols.txt"
+            "-Wl,--allow-shlib-undefined")
+endif()
+
 add_dependencies(${MODULE_NAME} libcore libcodegen)
 target_include_directories(${MODULE_NAME} PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -72,7 +161,6 @@ target_link_libraries(${MODULE_NAME} PUBLIC Backward::Interface
         libio
         Boost::iostreams
         Boost::thread
-        Boost::system
         Boost::filesystem)
 else()
     target_link_libraries(${MODULE_NAME}
@@ -84,7 +172,6 @@ else()
             libio
             Boost::iostreams
             Boost::thread
-            Boost::system
             Boost::filesystem)
 endif()
 

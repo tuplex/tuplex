@@ -1,0 +1,11 @@
+FROM python:3.11-alpine
+
+RUN apk update
+RUN apk add gcc musl-dev build-base linux-headers
+
+WORKDIR /code
+COPY tuplex-0.3.7-cp311-cp311-musllinux_1_2_aarch64.whl /code/wheelhouse/
+
+RUN python3 -m pip install /code/wheelhouse/tuplex-0.3.7-cp311-cp311-musllinux_1_2_aarch64.whl
+
+

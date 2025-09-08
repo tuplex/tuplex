@@ -109,7 +109,7 @@ if(BUILD_WITH_ORC)
                             "${CMAKE_CURRENT_BINARY_DIR}/lz4_ep-prefix/src/lz4_ep/contrib/cmake_unofficial")
                 endif()
 
-                ExternalProject_Add (lz4_ep URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"s
+                ExternalProject_Add (lz4_ep URL "https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz"
                         ${LZ4_CONFIGURE}
                         BUILD_BYPRODUCTS "${LZ4_STATIC_LIB}")
 
@@ -210,8 +210,11 @@ if(BUILD_WITH_ORC)
 
     ExternalProject_Add(orc
             GIT_REPOSITORY https://github.com/apache/orc.git
-            GIT_TAG rel/release-2.1.3
+            GIT_TAG rel/release-2.2.0
             TIMEOUT 5
+            PATCH_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/patches/orc.diff ${CMAKE_BINARY_DIR}/orc-patch.diff &&
+                        cd ${CMAKE_BINARY_DIR}/third_party/src/orc &&
+                        patch -p1 < ${CMAKE_BINARY_DIR}/orc-patch.diff
             CMAKE_ARGS -DBUILD_LIBHDFSPP=OFF -DSNAPPY_HOME=${SNAPPY_HOME}
             -DLZ4_HOME=${LZ4_HOME} -DZSTD_HOME=${ZSTD_HOME} -DZLIB_HOME=${ZLIB_HOME}
             -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -233,7 +236,6 @@ if(BUILD_WITH_ORC)
     set_target_properties(liborc PROPERTIES IMPORTED_LOCATION ${orc_LIBRARY})
 
     add_dependencies(liborc orc)
-    include_directories(${orc_INCLUDE_DIR})
     set(ORC_LIBRARIES
             ${SNAPPY_LIBRARIES}
             ${LZ4_LIBRARIES}
@@ -241,6 +243,7 @@ if(BUILD_WITH_ORC)
     # set also for parent scope (don't set liborc?)
     set(ORC_LIBRARIES ${SNAPPY_LIBRARIES} ${LZ4_LIBRARIES} PARENT_SCOPE)
 endif()
+
 
 add_library(libio OBJECT
         ${CMAKE_CURRENT_BINARY_DIR} ${SOURCES} ${INCLUDES})

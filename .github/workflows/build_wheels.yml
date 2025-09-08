@@ -17,96 +17,99 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # macos-14 (which is macos-latest) is ARM only. macos-13 is the latest intel runner.
-        # libunwind from brew has 13.6 as requirement right now, update the 13 runners accordingly.
-        os: [ ubuntu-latest, macos-13, macos-14 ]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         include:
-          - os: ubuntu-latest
-            python-version: "3.9"
-            cibw-build: "cp39-manylinux_x86_64"
-          - os: ubuntu-latest
-            python-version: "3.10"
-            cibw-build: "cp310-manylinux_x86_64"
-          - os: ubuntu-latest
-            python-version: "3.11"
-            cibw-build: "cp311-manylinux_x86_64"
-          - os: ubuntu-latest
-            python-version: "3.12"
-            cibw-build: "cp312-manylinux_x86_64"
-          - os: ubuntu-latest
-            python-version: "3.13"
-            cibw-build: "cp313-manylinux_x86_64"
-          - os: macos-13
-            python-version: "3.9"
-            cibw-build: "cp39-macosx_x86_64"
-            macos-target: "13.6"
-            arch: "x86_64"
-          - os: macos-13
-            python-version: "3.10"
-            cibw-build: "cp310-macosx_x86_64"
-            macos-target: "13.6"
-            arch: "x86_64"
-          - os: macos-13
-            python-version: "3.11"
-            cibw-build: "cp311-macosx_x86_64"
-            macos-target: "13.6"
-            arch: "x86_64"
-          - os: macos-13
-            python-version: "3.12"
-            cibw-build: "cp312-macosx_x86_64"
-            macos-target: "13.6"
-            arch: "x86_64"
-          - os: macos-13
-            python-version: "3.13"
-            cibw-build: "cp313-macosx_x86_64"
-            macos-target: "13.6"
-            arch: "x86_64"
-          - os: macos-14
-            python-version: "3.9"
-            cibw-build: "cp39-macosx_arm64"
-            macos-target: "14.0"
-            arch: "arm64"
-          - os: macos-14
-            python-version: "3.10"
-            cibw-build: "cp310-macosx_arm64"
-            macos-target: "14.0"
-            arch: "arm64"
-          - os: macos-14
-            python-version: "3.11"
-            cibw-build: "cp311-macosx_arm64"
-            macos-target: "14.0"
-            arch: "arm64"
-          - os: macos-14
-            python-version: "3.12"
-            cibw-build: "cp312-macosx_arm64"
-            macos-target: "14.0"
-            arch: "arm64"
           - os: macos-14
             python-version: "3.13"
             cibw-build: "cp313-macosx_arm64"
             macos-target: "14.0"
             arch: "arm64"
+          - os: macos-13
+            python-version: "3.13"
+            cibw-build: "cp313-macosx_x86_64"
+            macos-target: "13.6"
+            arch: "x86_64"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # disable cache for now.
-      #- name: Cache brew dependencies
-      #  if: runner.os == 'macOS'
-      #  uses: actions/cache@v4.2.1
-      #  with:
-      #    # Paths to cache:
-      #    # /usr/local/Homebrew - installation folder of Homebrew
-      #    # /usr/local/Cellar - installation folder of Homebrew formulae
-      #    # /usr/local/Frameworks, /usr/local/bin, /usr/local/opt - contain (links to) binaries installed by Homebrew formulae
-      #    path: |
-      #      /usr/local/Homebrew
-      #      /usr/local/Cellar
-      #      /usr/local/Frameworks
-      #      /usr/local/bin
-      #      /usr/local/opt
-      #    # macos13 runners are x86, macos14 are arm. --> use os therefore as cache key.
-      #    key: ${{ matrix.os }}-build-cache-${{ hashFiles('./scripts/macos/brew_dependencies.sh') }}-v2
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          echo "=== Starting macOS dependency installation ==="
+          echo "Current PATH: $PATH"
+          echo "Current architecture: $(uname -m)"
+          echo "macOS version: $(sw_vers -productVersion)"
+          echo "Current working directory: $(pwd)"
+          echo "User: $(whoami)"
+          echo "Home directory: $HOME"
+          echo "Brew cellar directory: $(brew --cellar)"
+          echo "Brew prefix directory: $(brew --prefix)"
+
+          # Create /opt directory with correct permissions
+          USER=$(whoami)
+          sudo mkdir -p /opt
+          sudo chown $USER /opt
+          touch /opt/test
+
+          # Handle different Homebrew cellar directories between Apple Silicon and x86_64
+          # Apple Silicon: /opt/homebrew/Cellar
+          # Intel x86_64: /usr/local/Cellar
+          
+          HOMEBREW_PREFIX="$(brew --prefix)"
+          HOMEBREW_CELLAR="$(brew --cellar)"
+          ARCH="$(uname -m)"
+          
+          echo "Homebrew prefix: $HOMEBREW_PREFIX"
+          echo "Homebrew cellar: $HOMEBREW_CELLAR"
+          echo "Architecture: $ARCH"
+          
+          # Ensure /opt/homebrew exists and points to the correct location
+          if [[ "$ARCH" == "arm64" ]]; then
+            # Apple Silicon - Homebrew should already be in /opt/homebrew
+            echo "Apple Silicon detected - using native /opt/homebrew"
+            if [ ! -d /opt/homebrew ]; then
+              echo "ERROR: /opt/homebrew not found on Apple Silicon!"
+              exit 1
+            fi
+          else
+            # Intel x86_64 - Homebrew is in /usr/local, create symlink to /opt/homebrew
+            echo "Intel x86_64 detected - creating /opt/homebrew symlink"
+            if [ -L /opt/homebrew ]; then
+              echo "/opt/homebrew already exists as a symlink"
+            elif [ -d /opt/homebrew ]; then
+              echo "Removing existing /opt/homebrew directory"
+              sudo rm -rf /opt/homebrew
+            fi
+            
+            # Create symlink from /opt/homebrew to actual Homebrew prefix
+            sudo ln -s "$HOMEBREW_PREFIX" /opt/homebrew
+            echo "Created symlink: /opt/homebrew -> $HOMEBREW_PREFIX"
+          fi
+          
+          # Verify the setup
+          echo "Verifying Homebrew setup:"
+          echo "  /opt/homebrew exists: $([ -e /opt/homebrew ] && echo 'YES' || echo 'NO')"
+          echo "  /opt/homebrew/bin exists: $([ -d /opt/homebrew/bin ] && echo 'YES' || echo 'NO')"
+          echo "  /opt/homebrew/lib exists: $([ -d /opt/homebrew/lib ] && echo 'YES' || echo 'NO')"
+          echo "  /opt/homebrew/Cellar exists: $([ -d /opt/homebrew/Cellar ] && echo 'YES' || echo 'NO')"
+
+
+          # Install dependencies with comprehensive verification
+          PREFIX=/opt bash ./scripts/macos/brew_dependencies.sh
+          PREFIX=/opt bash ./scripts/macos/install_antlr4_cpp_runtime.sh
+          PREFIX=/opt bash ./scripts/macos/install_aws-sdk-cpp.sh
+          
+          # Set up Java environment
+          echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
+          export PATH="/usr/local/opt/openjdk@11/bin:$PATH"
+          
+          # Update environment variables for the build (handle unbound variables with set -u)
+          export PATH="/opt/homebrew/bin:/opt/bin:/usr/local/bin:${PATH:-}"
+          export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/lib/pkgconfig:/usr/local/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+          export CMAKE_PREFIX_PATH="/opt/homebrew:/opt:/usr/local:${CMAKE_PREFIX_PATH:-}"
+          
+          echo "=== macOS dependency installation completed ==="
 
       - name: Setup python
         uses: actions/setup-python@v5
@@ -114,6 +117,7 @@ jobs:
           python-version: '3.11' 
 
       - name: Install cibuildwheel
+        # by default use the latest version, if there are issues use 3.1.4.
         run: python -m pip install cibuildwheel==2.22.0
 
       - name: Build wheels
@@ -125,8 +129,6 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: "registry-1.docker.io/tuplex/ci:${{ matrix.python-version }}"
           CIBW_BUILD: ${{ matrix.cibw-build }}
 
-          # macOS dependencies separate, for Linux use docker tuplex/ci:3.x images.
-          CIBW_BEFORE_ALL_MACOS: bash ./scripts/macos/install_antlr4_cpp_runtime.sh && bash ./scripts/macos/brew_dependencies.sh && bash ./scripts/macos/install_aws-sdk-cpp.sh && echo 'export PATH="/usr/local/opt/openjdk@11/bin:$PATH"' >> /Users/runner/.bash_profile
 
           # If CI complains about missing /usr/local/libexec/git-core/git-remote-https: error while loading shared libraries: libssl.so.3: cannot open shared object file: No such file or directory
           # the OpenSSL3 lib is stored under /usr/local/lib64.
@@ -136,10 +138,10 @@ jobs:
           # To avoid issues, simply use 13.6 for now.
           # Fix for Java home from https://github.com/actions/runner-images/discussions/9266.
           # For github actions, $HOME is /Users/runner/
-          CIBW_ENVIRONMENT_MACOS: "ARCH=${{ matrix.arch }} PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos-target }} CMAKE_ARGS='-DCMAKE_PREFIX_PATH=/Users/runner/.local -DCMAKE_MODULE_PATH=/Users/runner/.local/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
-
+          CIBW_ENVIRONMENT_MACOS: "ARCH=${{ matrix.arch }} PREFIX=${HOME}/.local MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos-target }} PATH=/opt/homebrew/bin:/usr/local/bin:/usr/local/opt/openjdk@11/bin:$PATH PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig CMAKE_PREFIX_PATH=/opt/homebrew:/usr/local:/Users/runner/.local CMAKE_ARGS='-DCMAKE_PREFIX_PATH=/Users/runner/.local:/opt/homebrew:/usr/local -DCMAKE_MODULE_PATH=/Users/runner/.local/cmake/ -DBUILD_WITH_AWS=ON -DBUILD_WITH_ORC=ON -DProtobuf_ROOT=/opt/homebrew -DBoost_ROOT=/opt/homebrew -DBoost_INCLUDE_DIR=/opt/homebrew/include -DBoost_LIBRARY_DIR=/opt/homebrew/lib -DLLVM_ROOT=/opt/homebrew/opt/llvm@15' JAVA_HOME=${JAVA_HOME_11_X64:-$JAVA_HOME_11_arm64}"
+          
           # run all python tests to make sure wheels are not defunct
-          CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter"
+          CIBW_TEST_REQUIRES: "pytest pytest-timeout numpy nbformat jupyter cloudpickle"
 
           # Use following test command when segfaults happen to better pinpoint:
           # python3 -X faulthandler -m pytest -p no:faulthandler

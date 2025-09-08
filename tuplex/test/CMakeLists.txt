@@ -16,18 +16,68 @@ find_package(Threads REQUIRED)
 #endif()
 
 if (Python3_FOUND)
+    message(STATUS "Python3 executable: ${Python3_EXECUTABLE}")
+    message(STATUS "Python3 version: ${Python3_VERSION}")
+    
+    # First, let's see what packages are actually installed
+    message(STATUS "Checking installed Python packages...")
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import pkg_resources; installed = [d.project_name for d in pkg_resources.working_set]; print('\\n'.join(sorted(installed)))"
+        OUTPUT_VARIABLE installed_packages
+        RESULT_VARIABLE ret_packages
+    )
+    if("${ret_packages}" STREQUAL "0")
+        message(STATUS "Installed packages:")
+        message(STATUS "${installed_packages}")
+    else()
+        message(WARNING "Could not list installed packages")
+    endif()
+    
+    # Check Python path and site-packages
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import sys; print('\\n'.join(sys.path))"
+        OUTPUT_VARIABLE python_path
+        RESULT_VARIABLE ret_path
+    )
+    if("${ret_path}" STREQUAL "0")
+        message(STATUS "Python sys.path:")
+        message(STATUS "${python_path}")
+    endif()
+    
     # check that cloudpickle is installed via import
-    set(cmd -c "import cloudpickle")
-    execute_process(COMMAND ${Python3_EXECUTABLE} ${cmd} RESULT_VARIABLE ret)
+    message(STATUS "Testing cloudpickle import...")
+    set(cmd -c "import cloudpickle; print('cloudpickle version:', cloudpickle.__version__)")
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} ${cmd} 
+        OUTPUT_VARIABLE cloudpickle_output
+        ERROR_VARIABLE cloudpickle_error
+        RESULT_VARIABLE ret
+    )
     if(NOT "${ret}" STREQUAL "0")
-        message(FATAL_ERROR "Could not find cloudpickle module, please install via pip3 install cloudpickle.")
+        message(STATUS "cloudpickle import failed with return code: ${ret}")
+        message(STATUS "cloudpickle stdout: ${cloudpickle_output}")
+        message(STATUS "cloudpickle stderr: ${cloudpickle_error}")
+        message(FATAL_ERROR "Could not find cloudpickle module. Please install via 'pip3 install cloudpickle'. The module is required for testing. Check the output above for details about what packages are currently installed.")
+    else()
+        message(STATUS "cloudpickle import successful: ${cloudpickle_output}")
     endif()
 
     # check that numpy is installed too for testing purposes...
-    set(cmd -c "import numpy")
-    execute_process(COMMAND ${Python3_EXECUTABLE} ${cmd} RESULT_VARIABLE ret)
+    message(STATUS "Testing numpy import...")
+    set(cmd -c "import numpy; print('numpy version:', numpy.__version__)")
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} ${cmd}
+        OUTPUT_VARIABLE numpy_output
+        ERROR_VARIABLE numpy_error
+        RESULT_VARIABLE ret
+    )
     if(NOT "${ret}" STREQUAL "0")
-        message(FATAL_ERROR "Could not find numpy module, please install via pip3 install numpy.")
+        message(STATUS "numpy import failed with return code: ${ret}")
+        message(STATUS "numpy stdout: ${numpy_output}")
+        message(STATUS "numpy stderr: ${numpy_error}")
+        message(FATAL_ERROR "Could not find numpy module. Please install via 'pip3 install numpy'. The module is required for testing. Check the output above for details about what packages are currently installed.")
+    else()
+        message(STATUS "numpy import successful: ${numpy_output}")
     endif()
 
 else()

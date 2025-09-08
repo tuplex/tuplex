@@ -72,7 +72,7 @@ MessageHandler& Logger::logger(const std::string &name) {
 #ifndef NDEBUG
         spdlogger->set_level(spdlog::level::debug);
 #endif
-        spdlog::register_logger(spdlogger);
+        spdlog::register_or_replace(spdlogger);
 
         return _handlers[name];
     }

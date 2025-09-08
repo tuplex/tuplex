@@ -3,8 +3,6 @@ FROM ubuntu:20.04
     
 # build using docker build -t tuplex/ubuntu:20.04 .
 
-MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"
-
 ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir -p /opt/sbin
 

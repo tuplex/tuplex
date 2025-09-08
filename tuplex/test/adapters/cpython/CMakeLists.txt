@@ -30,4 +30,4 @@ TARGET_LINK_LIBRARIES(testcpythonadapter
         ${CURSES_LIBRARY}
         )
 
-gtest_add_tests(TARGET testcpythonadapter TEST_PREFIX "")
+gtest_add_tests(TARGET testcpythonadapter)

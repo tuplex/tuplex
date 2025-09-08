@@ -1,14 +1,21 @@
 [build-system]
 requires = [
-    "setuptools>=42",
-    "pip>9",
+    "setuptools",
+    "pip",
     "wheel",
     "cloudpickle",
     "numpy",
-    "ninja; sys_platform != 'win32'",
+    "ninja;sys_platform!='win32'",
     "cmake>=3.25",
-    "delocate; sys.platform == 'darwin'",
-    "auditwheel; sys.platform == 'linux'",
+    "delocate;sys.platform=='darwin'",
+    "auditwheel;sys.platform=='linux'",
     "requests"
 ]
 build-backend = "setuptools.build_meta"
+
+# Ensure cloudpickle and numpy are installed as build-time dependencies when building the wheel.
+[tool.cibuildwheel]
+before-build = [
+    "pip install --upgrade pip setuptools wheel",
+    "pip install cloudpickle numpy"
+]

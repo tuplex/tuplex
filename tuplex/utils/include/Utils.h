@@ -43,7 +43,7 @@ namespace std {
 
 #if (defined __x86_64__)
 #include "third_party/levenshtein-sse.h"
-#elif (defined __arm64__)
+#elif (defined(__aarch64__) || defined(__arm64__))
 namespace tuplex {
     // native C++ implementation for now (ARM)
     inline size_t levenshtein(const std::string& word1, const std::string& word2) {

@@ -1,6 +1,11 @@
 # (c) 2017-2023 Leonhard Spiegelberg
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
+# Set policies to suppress warnings
+if(POLICY CMP0144)
+    cmake_policy(SET CMP0144 NEW) # FindPython3: Honor Python3_FIND_REGISTRY
+endif()
+
 # top-level language specification
 # enable c++17
 set(CMAKE_CXX_STANDARD 17)
@@ -223,9 +228,23 @@ if(PROTOBUF_REQUIRED)
     message(STATUS "Build requires Protobuf")
     set(Protobuf_USE_STATIC_LIBS ON)
     # https://github.com/protocolbuffers/protobuf/issues/12637
-    find_package(Protobuf CONFIG)
+    
+    # Try CONFIG method first (preferred for modern protobuf installations)
+    find_package(Protobuf CONFIG QUIET)
+    
     if(NOT Protobuf_FOUND)
+        message(STATUS "Protobuf CONFIG not found, trying REQUIRED method")
         find_package(Protobuf REQUIRED)
+    else()
+        message(STATUS "Found Protobuf using CONFIG method")
+    endif()
+    
+    # Final verification
+    if(NOT Protobuf_FOUND)
+        message(FATAL_ERROR "Protobuf not found. Please install protobuf development libraries. "
+                           "On macOS: brew install protobuf\n"
+                           "On Ubuntu: sudo apt-get install libprotobuf-dev protobuf-compiler\n"
+                           "On CentOS: sudo yum install protobuf-devel protobuf-compiler")
     endif()
 
     if(Protobuf_LIBRARY)
@@ -388,7 +407,12 @@ endif()
 # use march=native if available and NOT building wheels
 
 # specific Release flags, i.e. targeting loop unrolling.
-ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
+# Only use -m64 for x86_64 architectures
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    ucm_add_flags(-m64 -O3 -funroll-loops CONFIG Release)
+else()
+    ucm_add_flags(-O3 -funroll-loops CONFIG Release)
+endif()
 
 # for GCC add stack protector
 # -fstack-protector-strong
@@ -411,30 +435,38 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # for release mode, don't use Ofast unless you're ok to break NAN/INF compatibility.
 if(BUILD_FOR_LAMBDA)
-    ucm_add_flags(-march=haswell)
+    # Only use x86_64 specific march flags for x86_64 architectures
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        ucm_add_flags(-march=haswell)
+    endif()
 endif()
 
 # add compiler flags for specific SIMD instructions
-include(FindSSE)
-include(FindSIMD)
-CHECK_FOR_SSE42()
-CHECK_FOR_AVX()
-# add compiler flags
-if(HAVE_SSE42)
-    message(STATUS "Found SSE4.2 support, adding -msse4.2")
-    # no msvc support, so use clang/gcc flag approach!
-    add_compile_options("-msse4.2")
-endif()
-if(HAVE_AVX)
-    # only add avx (because not any architecture supports it) if native build is enabled or build for lambda
-    # because Haswell supports both AVX and AVX2!
-    if(BUILD_NATIVE OR BUILD_FOR_LAMBDA)
-        message(STATUS "Found AVX support, adding -mavx")
+# Only include SSE/AVX checks for x86_64 architectures
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    include(FindSSE)
+    include(FindSIMD)
+    CHECK_FOR_SSE42()
+    CHECK_FOR_AVX()
+    # add compiler flags
+    if(HAVE_SSE42)
+        message(STATUS "Found SSE4.2 support, adding -msse4.2")
         # no msvc support, so use clang/gcc flag approach!
-        add_compile_options("-mavx")
+        add_compile_options("-msse4.2")
+    endif()
+    if(HAVE_AVX)
+        # only add avx (because not any architecture supports it) if native build is enabled or build for lambda
+        # because Haswell supports both AVX and AVX2!
+        if(BUILD_NATIVE OR BUILD_FOR_LAMBDA)
+            message(STATUS "Found AVX support, adding -mavx")
+            # no msvc support, so use clang/gcc flag approach!
+            add_compile_options("-mavx")
+        endif()
+    else()
+        message(STATUS "no avx support, build with -DBUILD_NATIVE=ON to enable")
     endif()
 else()
-    message(STATUS "no avx support, build with -DBUILD_NATIVE=ON to enable")
+    message(STATUS "Skipping SSE/AVX checks for non-x86_64 architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
 ###########################################################################
@@ -587,6 +619,8 @@ if(PYTHON3_EXECUTABLE)
     set(Python3_EXECUTABLE ${Python3_EXECUTABLE})
     message(STATUS "Using specific python executable ${PYTHON3_EXECUTABLE}")
     unset(PYTHON3_VERSION)
+    # Unset the legacy Python_EXECUTABLE variable to avoid CMake warnings
+    unset(Python_EXECUTABLE CACHE)
 
     # get version from executable
     execute_process (COMMAND "${PYTHON3_EXECUTABLE}" -c "import sys;print('{}.{}.{}'.format(sys.version_info.major,sys.version_info.minor,sys.version_info.micro))"
@@ -785,7 +819,7 @@ execute_process (COMMAND "${Python3_EXECUTABLE}" -c "from distutils import sysco
 message(STATUS "Python3 extension module suffix is: ${PYTHON_MODULE_EXTENSION}")
 
 set(Boost_NO_WARN_NEW_VERSIONS ON) # cmake 3.20 finally has a switch to kill the boost warnings...
-set(BOOST_COMPONENTS iostreams thread system filesystem)
+set(BOOST_COMPONENTS iostreams thread filesystem)
 if(Python3_FOUND)
     if(Python3_VERSION_MAJOR LESS 3 OR Python3_VERSION_MINOR LESS 5)
         message(FATAL_ERROR "Tuplex requires python3.5 at least, found incompatible python ${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}")
@@ -797,7 +831,10 @@ if(Python3_FOUND)
     endif()
     message(STATUS "Found python${Python3_VERSION} - if you'd like to change a to different python version, use -DPython3_ROOT_DIR=<prefix> or -DPYTHON3_VERSION=<major.minor.micro> or set an environment variable PYTHON3_VERSION")
 
-    set(Boost_NO_BOOST_CMAKE ON) # findboost from cmake is buggy and does not work, explicitly disable here
+
+    # For cmake < 4.0, finding boost may be buggy.
+    # set(Boost_NO_BOOST_CMAKE ON) # findboost from cmake is buggy and does not work, explicitly disable here
+
     if(APPLE AND BREW_FOUND) # i.e. boost-python via brew? --> check maybe better in the future...
         set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE) # gets rid off annoying boost warning.
     endif()

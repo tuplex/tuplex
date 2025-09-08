@@ -15,4 +15,4 @@ TARGET_LINK_LIBRARIES(testutils
         ${AWSSDK_LINK_LIBRARIES}
         )
 
-gtest_add_tests(TARGET testutils TEST_PREFIX "")
+gtest_add_tests(TARGET testutils)

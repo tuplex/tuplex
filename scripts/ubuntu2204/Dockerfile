@@ -3,8 +3,6 @@ FROM ubuntu:22.04
     
 # build using docker build -t tuplex/ubuntu:22.04 .
 
-MAINTAINER Leonhard Spiegelberg "leonhard@brown.edu"
-
 ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir -p /opt/sbin
 

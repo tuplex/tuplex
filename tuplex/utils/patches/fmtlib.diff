@@ -1,0 +1,17 @@
+diff --git a/include/fmt/format-inl.h b/include/fmt/format-inl.h
+index a1e0166..8ab753a 100644
+--- a/include/fmt/format-inl.h
++++ b/include/fmt/format-inl.h
+@@ -1476,6 +1476,12 @@ template <typename F> auto getc_unlocked(F* f) -> decltype(_fgetc_nolock(f)) {
+ }
+ #endif
+ 
++#ifndef EOF
++// Define via C++.
++#include <string>
++#define EOF (std::char_traits<char>::eof())
++#endif
++
+ template <typename F = FILE, typename Enable = void>
+ struct has_flockfile : std::false_type {};
+ 

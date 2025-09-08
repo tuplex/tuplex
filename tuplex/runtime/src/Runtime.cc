@@ -18,11 +18,13 @@
 #include <StringUtils.h> // <-- implemented in StringUtils
 #include <ExceptionCodes.h>
 #include <fmt/format.h>
+#include <fmt/args.h>
 #include <pcre2.h>
 #include <Logger.h>
 #include <random>
 #include <cstdio>
 #include <cstdlib> // for aligned_malloc
+#include <cstdarg> // for va_arg
 
 #define RUNTIME_DEFAULT_BLOCK_SIZE (4 * 1024 * 1024)
 

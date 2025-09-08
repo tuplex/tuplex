@@ -24,4 +24,4 @@ TARGET_LINK_LIBRARIES(testruntime
         ${CURSES_LIBRARY}
 )
 
-gtest_add_tests(TARGET testruntime TEST_PREFIX "")
+gtest_add_tests(TARGET testruntime)

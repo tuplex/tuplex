@@ -1,0 +1,74 @@
+diff --git a/third_party/abseil-cpp/absl/base/internal/direct_mmap.h b/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
+index 1234567..abcdefg 100644
+--- a/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
++++ b/third_party/abseil-cpp/absl/base/internal/direct_mmap.h
+@@ -23,6 +23,14 @@
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++// Fix for musl libc compatibility - off64_t is not defined
++#if defined(__MUSL__) || !defined(_LARGEFILE64_SOURCE)
++#ifndef off64_t
++#define off64_t off_t
++#endif
++#endif
++
++
+ namespace absl {
+ ABSL_NAMESPACE_BEGIN
+ namespace base_internal {
+diff --git a/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc b/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc
+index 1234567..abcdefg 100644
+--- a/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc
++++ b/third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc
+@@ -20,6 +20,14 @@
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++// Fix for musl libc compatibility - off64_t is not defined
++#if defined(__MUSL__) || !defined(_LARGEFILE64_SOURCE)
++#ifndef off64_t
++#define off64_t off_t
++#endif
++#endif
++
++
+ #include "absl/base/internal/low_level_alloc.h"
+ 
+ #include <stddef.h>
+diff --git a/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc b/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc
+index 1234567..abcdefg 100644
+--- a/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc
++++ b/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc
+@@ -20,6 +20,14 @@
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++// Fix for musl libc compatibility - off64_t is not defined
++#if defined(__MUSL__) || !defined(_LARGEFILE64_SOURCE)
++#ifndef off64_t
++#define off64_t off_t
++#endif
++#endif
++
++
+ #include "absl/strings/internal/ostringstream.h"
+ 
+ #include <algorithm>
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1234567..abcdefg 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,6 +7,12 @@
+ cmake_minimum_required(VERSION 3.5)
+ project(protobuf VERSION 24.3.0 LANGUAGES C CXX)
+ 
++# Add musl libc compatibility flags
++if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
++  add_compile_definitions(_LARGEFILE64_SOURCE)
++  add_compile_definitions(_FILE_OFFSET_BITS=64)
++endif()
++
+ # Set C++ standard
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)

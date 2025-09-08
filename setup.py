@@ -117,50 +117,107 @@ aws_lambda_dependencies = []
 if in_google_colab():
     logging.debug('Building dependencies for Google Colab environment')
 
-    install_dependencies = [
-        'urllib3!=1.25.0,!=1.25.1,>=1.21.1',
-        'folium>=0.2.1'
-        'requests',
-        'attrs>=19.2.0',
-        'dill>=0.2.7.1',
-        'pluggy',
-        'py>=1.5.2',
-        'pygments>=2.4.1',
-        'six>=1.11.0',
-        'wcwidth>=0.1.7',
-        'astor',
-        'prompt_toolkit',
-        'jedi',
-        "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
-        "cloudpickle>=2.1.0;python_version=='3.10'",
-        "cloudpickle>=2.2.1;python_version>='3.11'",
-        'PyYAML>=3.13',
-        'psutil',
-        'pymongo',
-        'iso8601'
-    ]
+    # Check if history server should be included
+    include_historyserver = os.environ.get('TUPLEX_INCLUDE_HISTORYSERVER', 'True').lower() in ('true', '1', 'yes', 'on')
+    
+    if include_historyserver:
+        install_dependencies = [
+            'urllib3!=1.25.0,!=1.25.1,>=1.21.1',
+            'folium>=0.2.1'
+            'requests',
+            'attrs>=19.2.0',
+            'dill>=0.2.7.1',
+            'pluggy',
+            'py>=1.5.2',
+            'pygments>=2.4.1',
+            'six>=1.11.0',
+            'wcwidth>=0.1.7',
+            'astor',
+            'prompt_toolkit',
+            'jedi',
+            "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+            "cloudpickle>=2.1.0;python_version=='3.10'",
+            "cloudpickle>=2.2.1;python_version>='3.11'",
+            'numpy>=1.15.0',
+            'PyYAML>=3.13',
+            'psutil',
+            'pymongo',
+            'iso8601'
+        ]
+    else:
+        # Exclude webui dependencies when history server is not included
+        # Note: iso8601 is still needed by core tuplex code, not just history server
+        install_dependencies = [
+            'urllib3!=1.25.0,!=1.25.1,>=1.21.1',
+            'folium>=0.2.1'
+            'requests',
+            'attrs>=19.2.0',
+            'dill>=0.2.7.1',
+            'pluggy',
+            'py>=1.5.2',
+            'pygments>=2.4.1',
+            'six>=1.11.0',
+            'wcwidth>=0.1.7',
+            'astor',
+            'prompt_toolkit',
+            'jedi',
+            "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+            "cloudpickle>=2.1.0;python_version=='3.10'",
+            "cloudpickle>=2.2.1;python_version>='3.11'",
+            'numpy>=1.15.0',
+            'PyYAML>=3.13',
+            'psutil',
+            'iso8601'
+        ]
 else:
     logging.debug('Building dependencies for non Colab environment')
 
-    install_dependencies = webui_dependencies + [
-        'attrs>=19.2.0',
-        'dill>=0.2.7.1',
-        'pluggy',
-        'py>=1.5.2',
-        'pygments>=2.4.1',
-        'six>=1.11.0',
-        'wcwidth>=0.1.7',
-        'astor',
-        'prompt_toolkit',
-        'jedi',
-        "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
-        "cloudpickle>=2.1.0;python_version=='3.10'",
-        "cloudpickle>=2.2.1;python_version>='3.11'",
-        'PyYAML>=3.13',
-        'psutil',
-        'pymongo',
-        'iso8601'
-    ] + aws_lambda_dependencies
+    # Check if history server should be included
+    include_historyserver = os.environ.get('TUPLEX_INCLUDE_HISTORYSERVER', 'True').lower() in ('true', '1', 'yes', 'on')
+    
+    if include_historyserver:
+        install_dependencies = webui_dependencies + [
+            'attrs>=19.2.0',
+            'dill>=0.2.7.1',
+            'pluggy',
+            'py>=1.5.2',
+            'pygments>=2.4.1',
+            'six>=1.11.0',
+            'wcwidth>=0.1.7',
+            'astor',
+            'prompt_toolkit',
+            'jedi',
+            "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+            "cloudpickle>=2.1.0;python_version=='3.10'",
+            "cloudpickle>=2.2.1;python_version>='3.11'",
+            'numpy>=1.15.0',
+            'PyYAML>=3.13',
+            'psutil',
+            'pymongo',
+            'iso8601'
+        ] + aws_lambda_dependencies
+    else:
+        # Exclude webui dependencies when history server is not included
+        # Note: iso8601 is still needed by core tuplex code, not just history server
+        install_dependencies = [
+            'attrs>=19.2.0',
+            'dill>=0.2.7.1',
+            'pluggy',
+            'py>=1.5.2',
+            'pygments>=2.4.1',
+            'six>=1.11.0',
+            'wcwidth>=0.1.7',
+            'astor',
+            'prompt_toolkit',
+            'jedi',
+            "cloudpickle>=0.6.1,<2.0.0;python_version<'3.10'",
+            "cloudpickle>=2.1.0;python_version=='3.10'",
+            "cloudpickle>=2.2.1;python_version>='3.11'",
+            'numpy>=1.15.0',
+            'PyYAML>=3.13',
+            'psutil',
+            'iso8601'
+        ] + aws_lambda_dependencies
 
 def ninja_installed():
     # check whether ninja is on the path
@@ -658,7 +715,18 @@ def read_readme():
 def reorg_historyserver():
     """
     reorganize historyserver to become part of pip package.
+    Can be disabled by setting TUPLEX_INCLUDE_HISTORYSERVER=False
     """
+    # Check if history server should be included
+    env_value = os.environ.get('TUPLEX_INCLUDE_HISTORYSERVER', 'True')
+    include_historyserver = env_value.lower() in ('true', '1', 'yes', 'on')
+    
+    logging.info(f'TUPLEX_INCLUDE_HISTORYSERVER={env_value}, include_historyserver={include_historyserver}')
+    
+    if not include_historyserver:
+        logging.info('History server excluded from package (TUPLEX_INCLUDE_HISTORYSERVER=False)')
+        return []
+    
     # get absolute path of this file's location
     import pathlib
     current_path = pathlib.Path(__file__).parent.resolve()
@@ -680,11 +748,15 @@ def tplx_package_data():
 
     package_data = {
       # include libs in libexec
-    'tuplex.libexec' : ['*.so', '*.dylib'],
-    'tuplex.historyserver': ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
-                                 'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
-                                 'thserver/static/js/styles/*.css']
+    'tuplex.libexec' : ['*.so', '*.dylib']
     }
+
+    # Check if history server should be included
+    include_historyserver = os.environ.get('TUPLEX_INCLUDE_HISTORYSERVER', 'True').lower() in ('true', '1', 'yes', 'on')
+    if include_historyserver:
+        package_data['tuplex.historyserver'] = ['thserver/templates/*.html', 'thserver/static/css/*.css', 'thserver/static/css/styles/*.css',
+                                     'thserver/static/img/*.*', 'thserver/static/js/*.js', 'thserver/static/js/modules/*.js',
+                                     'thserver/static/js/styles/*.css']
 
     # package lambda as well?
     lambda_zip = os.environ.get('TUPLEX_LAMBDA_ZIP', None)
@@ -694,6 +766,10 @@ def tplx_package_data():
 
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
+#
+# Environment variables:
+# - TUPLEX_INCLUDE_HISTORYSERVER: Set to 'False' to exclude the history server
+#   from the package (default: 'True'). This reduces package size and dependencies.
 setup(name="tuplex",
     python_requires='>=3.9.0',
     version="0.3.7",
@@ -741,7 +817,7 @@ setup(name="tuplex",
         'Programming Language :: Python :: 3.12',
         'Programming Language :: Python :: 3.13',
     ],
-    scripts=['tuplex/historyserver/bin/tuplex-webui'],
+    scripts=['tuplex/historyserver/bin/tuplex-webui'] if os.environ.get('TUPLEX_INCLUDE_HISTORYSERVER', 'True').lower() in ('true', '1', 'yes', 'on') else [],
     project_urls={
         "Bug Tracker": "https://github.com/tuplex",
         "Documentation": "https://tuplex.cs.brown.edu/python-api.html",
